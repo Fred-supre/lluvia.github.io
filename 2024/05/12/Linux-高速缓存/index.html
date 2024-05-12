@@ -7,8 +7,8 @@
 
 <head>
   <meta charset="UTF-8">
-  <link rel="apple-touch-icon" sizes="76x76" href="/img/%E5%A4%B4%E5%83%8F.jpeg">
-  <link rel="icon" href="/img/%E5%A4%B4%E5%83%8F.jpeg">
+  <link rel="apple-touch-icon" sizes="76x76" href="/lluvialuo/lluvialuo.github.io/img/%E5%A4%B4%E5%83%8F.jpeg">
+  <link rel="icon" href="/lluvialuo/lluvialuo.github.io/img/%E5%A4%B4%E5%83%8F.jpeg">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
   <meta http-equiv="x-ua-compatible" content="ie=edge">
   
@@ -19,26 +19,26 @@
     <meta name="description" content="CPU高速缓存 本篇作为列存模型的前置内容，主要分析L1,L2,L3 Cache的基本原理 参考资料：  Cache的基本原理 Cache组织方式 TLB原理   1. Cache         现代的CPU都普遍存在L1、L2、L3三层Cache用于缓解CPU和DRAM之间的较大速度差距 在Cortex-A53架构上，L1 Cache分为单独的instruction cache（ICache）">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Linux:高速缓存">
-<meta property="og:url" content="https://lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/index.html">
+<meta property="og:url" content="https://github.com/lluvialuo/lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/index.html">
 <meta property="og:site_name" content="Lluvia&#39;s blog">
 <meta property="og:description" content="CPU高速缓存 本篇作为列存模型的前置内容，主要分析L1,L2,L3 Cache的基本原理 参考资料：  Cache的基本原理 Cache组织方式 TLB原理   1. Cache         现代的CPU都普遍存在L1、L2、L3三层Cache用于缓解CPU和DRAM之间的较大速度差距 在Cortex-A53架构上，L1 Cache分为单独的instruction cache（ICache）">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/cpu%E7%BC%93%E5%AD%98%E6%9E%B6%E6%9E%84.png">
-<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/%E7%9B%B4%E6%8E%A5%E6%98%A0%E5%B0%84.webp">
-<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/%E4%B8%A4%E8%B7%AF%E7%BB%84%E7%9B%B8%E8%BF%9E.webp">
-<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/%E5%85%A8%E7%9B%B8%E8%BF%9E.webp">
-<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/VIVT.webp">
-<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/PIPT.webp">
-<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/VIPT.webp">
-<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/TLB.png">
-<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/mesi.png">
+<meta property="og:image" content="https://github.com/lluvialuo/lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/cpu%E7%BC%93%E5%AD%98%E6%9E%B6%E6%9E%84.png">
+<meta property="og:image" content="https://github.com/lluvialuo/lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/%E7%9B%B4%E6%8E%A5%E6%98%A0%E5%B0%84.webp">
+<meta property="og:image" content="https://github.com/lluvialuo/lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/%E4%B8%A4%E8%B7%AF%E7%BB%84%E7%9B%B8%E8%BF%9E.webp">
+<meta property="og:image" content="https://github.com/lluvialuo/lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/%E5%85%A8%E7%9B%B8%E8%BF%9E.webp">
+<meta property="og:image" content="https://github.com/lluvialuo/lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/VIVT.webp">
+<meta property="og:image" content="https://github.com/lluvialuo/lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/PIPT.webp">
+<meta property="og:image" content="https://github.com/lluvialuo/lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/VIPT.webp">
+<meta property="og:image" content="https://github.com/lluvialuo/lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/TLB.png">
+<meta property="og:image" content="https://github.com/lluvialuo/lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/mesi.png">
 <meta property="article:published_time" content="2024-05-12T07:09:08.000Z">
 <meta property="article:modified_time" content="2024-05-12T07:27:20.276Z">
 <meta property="article:author" content="Lluvia Luo">
 <meta property="article:tag" content="Linux">
 <meta property="article:tag" content="memory model">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/cpu%E7%BC%93%E5%AD%98%E6%9E%B6%E6%9E%84.png">
+<meta name="twitter:image" content="https://github.com/lluvialuo/lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/cpu%E7%BC%93%E5%AD%98%E6%9E%B6%E6%9E%84.png">
   
   
   
@@ -66,12 +66,12 @@
 <link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
 
 
-<link  rel="stylesheet" href="/css/main.css" />
+<link  rel="stylesheet" href="/lluvialuo/lluvialuo.github.io/css/main.css" />
 
 
-  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  <link id="highlight-css" rel="stylesheet" href="/lluvialuo/lluvialuo.github.io/css/highlight.css" />
   
-    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+    <link id="highlight-css-dark" rel="stylesheet" href="/lluvialuo/lluvialuo.github.io/css/highlight-dark.css" />
   
 
 
@@ -80,15 +80,15 @@
   <script id="fluid-configs">
     var Fluid = window.Fluid || {};
     Fluid.ctx = Object.assign({}, Fluid.ctx)
-    var CONFIG = {"hostname":"lluvialuo.github.io","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+    var CONFIG = {"hostname":"github.com","root":"/lluvialuo/lluvialuo.github.io/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/lluvialuo/lluvialuo.github.io/local-search.xml","include_content_in_search":true};
 
     if (CONFIG.web_analytics.follow_dnt) {
       var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
       Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
     }
   </script>
-  <script  src="/js/utils.js" ></script>
-  <script  src="/js/color-schema.js" ></script>
+  <script  src="/lluvialuo/lluvialuo.github.io/js/utils.js" ></script>
+  <script  src="/lluvialuo/lluvialuo.github.io/js/color-schema.js" ></script>
   
 
 
@@ -105,7 +105,7 @@
 <div class="header-inner" style="height: 70vh;">
   <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
   <div class="container">
-    <a class="navbar-brand" href="/">
+    <a class="navbar-brand" href="/lluvialuo/lluvialuo.github.io/">
       <strong>Lluvia</strong>
     </a>
 
@@ -124,7 +124,7 @@
           
           
             <li class="nav-item">
-              <a class="nav-link" href="/" target="_self">
+              <a class="nav-link" href="/lluvialuo/lluvialuo.github.io/" target="_self">
                 <i class="iconfont icon-home-fill"></i>
                 <span>首页</span>
               </a>
@@ -136,7 +136,7 @@
           
           
             <li class="nav-item">
-              <a class="nav-link" href="/archives/" target="_self">
+              <a class="nav-link" href="/lluvialuo/lluvialuo.github.io/archives/" target="_self">
                 <i class="iconfont icon-archive-fill"></i>
                 <span>归档</span>
               </a>
@@ -148,7 +148,7 @@
           
           
             <li class="nav-item">
-              <a class="nav-link" href="/categories/" target="_self">
+              <a class="nav-link" href="/lluvialuo/lluvialuo.github.io/categories/" target="_self">
                 <i class="iconfont icon-category-fill"></i>
                 <span>分类</span>
               </a>
@@ -160,7 +160,7 @@
           
           
             <li class="nav-item">
-              <a class="nav-link" href="/tags/" target="_self">
+              <a class="nav-link" href="/lluvialuo/lluvialuo.github.io/tags/" target="_self">
                 <i class="iconfont icon-tags-fill"></i>
                 <span>标签</span>
               </a>
@@ -172,7 +172,7 @@
           
           
             <li class="nav-item">
-              <a class="nav-link" href="/about/" target="_self">
+              <a class="nav-link" href="/lluvialuo/lluvialuo.github.io/about/" target="_self">
                 <i class="iconfont icon-user-fill"></i>
                 <span>关于</span>
               </a>
@@ -202,7 +202,7 @@
   
 
 <div id="banner" class="banner" parallax=true
-     style="background: url('/img/mainpage.jpg') no-repeat center center; background-size: cover;">
+     style="background: url('/lluvialuo/lluvialuo.github.io/img/mainpage.jpg') no-repeat center center; background-size: cover;">
   <div class="full-bg-img">
     <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
       <div class="banner-text text-center fade-in-up">
@@ -294,7 +294,7 @@
 </ol>
 </blockquote>
 <h3 id="1-Cache"><a href="#1-Cache" class="headerlink" title="1. Cache"></a>1. Cache</h3><div style="text-align:center;">
-    <img src="cpu缓存架构.png" srcset="/img/loading.gif" lazyload alt="cpu缓存架构.png" width="475" height="257" class="jop-noMdConv">
+    <img src="cpu缓存架构.png" srcset="/lluvialuo/lluvialuo.github.io/img/loading.gif" lazyload alt="cpu缓存架构.png" width="475" height="257" class="jop-noMdConv">
 </div>
 
 <ul>
@@ -348,7 +348,7 @@
 </tr>
 </tbody></table>
 <h4 id="1-1-映射模式"><a href="#1-1-映射模式" class="headerlink" title="1.1 映射模式"></a>1.1 映射模式</h4><h5 id="直接映射缓存-Direct-mapped-cache"><a href="#直接映射缓存-Direct-mapped-cache" class="headerlink" title="直接映射缓存(Direct mapped cache)"></a>直接映射缓存(Direct mapped cache)</h5><div style="text-align:center;">
-    <img src="直接映射.webp" srcset="/img/loading.gif" lazyload alt="直接映射.webp" width="572" height="293" class="jop-noMdConv">
+    <img src="直接映射.webp" srcset="/lluvialuo/lluvialuo.github.io/img/loading.gif" lazyload alt="直接映射.webp" width="572" height="293" class="jop-noMdConv">
 </div>
 
 <ul>
@@ -361,7 +361,7 @@
 <li>很显然一个内存地址只会被映射到一个固定的Cache Line位置上，如果反复访问的两个列存地址其index指向同一个Cache Line，那么会造成对这一个缓存位置的争抢，从而造成对缓存的反复排出和读入，即使缓存还有大量的空间。这种现象叫做缓存颠簸（cache thrashing）</li>
 </ul>
 <h5 id="两路组相连缓存-Two-way-set-associative-cache"><a href="#两路组相连缓存-Two-way-set-associative-cache" class="headerlink" title="两路组相连缓存(Two-way set associative cache)"></a>两路组相连缓存(Two-way set associative cache)</h5><div style="text-align:center;">
-    <img src="两路组相连.webp" srcset="/img/loading.gif" lazyload alt="两路组相连.webp" width="710" height="251" class="jop-noMdConv">
+    <img src="两路组相连.webp" srcset="/lluvialuo/lluvialuo.github.io/img/loading.gif" lazyload alt="两路组相连.webp" width="710" height="251" class="jop-noMdConv">
 </div>
 
 <ul>
@@ -369,7 +369,7 @@
 <li>从某种程度上来说，直接映射缓存是组相连缓存的一种特殊情况，每个组只有一个cache line而已。因此，直接映射缓存也可以称作单路组相连缓存</li>
 </ul>
 <h5 id="全相连缓存-Full-associative-cache"><a href="#全相连缓存-Full-associative-cache" class="headerlink" title="全相连缓存(Full associative cache)"></a>全相连缓存(Full associative cache)</h5><div style="text-align:center;">
-    <img src="全相连.webp" srcset="/img/loading.gif" lazyload alt="全相连.webp" width="480" height="272" class="jop-noMdConv">
+    <img src="全相连.webp" srcset="/lluvialuo/lluvialuo.github.io/img/loading.gif" lazyload alt="全相连.webp" width="480" height="272" class="jop-noMdConv">
 </div>
 
 <h4 id="1-2-更新策略"><a href="#1-2-更新策略" class="headerlink" title="1.2 更新策略"></a>1.2 更新策略</h4><h5 id="写直通-write-through"><a href="#写直通-write-through" class="headerlink" title="写直通(write through)"></a>写直通(write through)</h5><ul>
@@ -384,7 +384,7 @@
 <li>CPU在发出对某个地址的数据访问，这个地址其实是虚拟地址，虚拟地址经过MMU转换成物理地址，最终从这个物理地址读取数据。</li>
 </ul>
 <h5 id="虚拟高速缓存-VIVT"><a href="#虚拟高速缓存-VIVT" class="headerlink" title="虚拟高速缓存(VIVT)"></a>虚拟高速缓存(VIVT)</h5><div style="text-align:center;">
-    <img src="VIVT.webp" srcset="/img/loading.gif" lazyload alt="VIVT.webp" width="556" height="287" class="jop-noMdConv">
+    <img src="VIVT.webp" srcset="/lluvialuo/lluvialuo.github.io/img/loading.gif" lazyload alt="VIVT.webp" width="556" height="287" class="jop-noMdConv">
 </div>
 
 <ul>
@@ -405,7 +405,7 @@
 <li>还可以有另一种解决方案。这种方法只针对直接映射高速缓存，并且使用了写分配机制有效。在建立共享数据映射时，保证每次分配的虚拟地址都索引到相同的cacheline。</li>
 </ul>
 <h5 id="物理高速缓存-PIPT"><a href="#物理高速缓存-PIPT" class="headerlink" title="物理高速缓存(PIPT)"></a>物理高速缓存(PIPT)</h5><div style="text-align:center;">
-    <img src="PIPT.webp" srcset="/img/loading.gif" lazyload alt="PIPT.webp" width="544" height="307" class="jop-noMdConv">
+    <img src="PIPT.webp" srcset="/lluvialuo/lluvialuo.github.io/img/loading.gif" lazyload alt="PIPT.webp" width="544" height="307" class="jop-noMdConv">
 </div>
 
 <ul>
@@ -414,7 +414,7 @@
 <li>为了加快MMU翻译虚拟地址的速度，硬件上也会加入一块cache，作用是缓存虚拟地址和物理地址的映射关系，这块cache称之为TLB(Translation Lookaside Buffer)</li>
 </ul>
 <h5 id="物理标记的虚拟高速缓存-VIPT"><a href="#物理标记的虚拟高速缓存-VIPT" class="headerlink" title="物理标记的虚拟高速缓存(VIPT)"></a>物理标记的虚拟高速缓存(VIPT)</h5><div style="text-align:center;">
-    <img src="VIPT.webp" srcset="/img/loading.gif" lazyload alt="VIPT.webp" width="537" height="305" class="jop-noMdConv">
+    <img src="VIPT.webp" srcset="/lluvialuo/lluvialuo.github.io/img/loading.gif" lazyload alt="VIPT.webp" width="537" height="305" class="jop-noMdConv">
 </div>
 
 <ul>
@@ -424,7 +424,7 @@
 <li>解决方案其实也很简单，当Cache Size大于Page Size是，我们可以使用分路的方案，可以天然的降低index取的最高位，让其适配Page Size所占的位数</li>
 </ul>
 <h4 id="1-4-TLB"><a href="#1-4-TLB" class="headerlink" title="1.4 TLB"></a>1.4 TLB</h4><div style="text-align:center;">
-    <img src="TLB.png" srcset="/img/loading.gif" lazyload alt="TLB.png" width="561" height="275" class="jop-noMdConv">
+    <img src="TLB.png" srcset="/lluvialuo/lluvialuo.github.io/img/loading.gif" lazyload alt="TLB.png" width="561" height="275" class="jop-noMdConv">
 </div>
 
 <ul>
@@ -480,7 +480,7 @@
 </li>
 </ul>
 <div style="text-align:center;">
-    <img src="mesi.png" srcset="/img/loading.gif" lazyload alt="mesi.png" width="520" height="281" class="jop-noMdConv">
+    <img src="mesi.png" srcset="/lluvialuo/lluvialuo.github.io/img/loading.gif" lazyload alt="mesi.png" width="520" height="281" class="jop-noMdConv">
 </div>
 
 <h5 id="伪共享"><a href="#伪共享" class="headerlink" title="伪共享"></a>伪共享</h5><ul>
@@ -550,7 +550,7 @@
     
       <span class="category-chain">
         
-  <a href="/categories/Linux/" class="category-chain-item">Linux</a>
+  <a href="/lluvialuo/lluvialuo.github.io/categories/Linux/" class="category-chain-item">Linux</a>
   
   
 
@@ -565,9 +565,9 @@
     <div class="post-meta">
       <i class="iconfont icon-tags"></i>
       
-        <a href="/tags/Linux/" class="print-no-link">#Linux</a>
+        <a href="/lluvialuo/lluvialuo.github.io/tags/Linux/" class="print-no-link">#Linux</a>
       
-        <a href="/tags/memory-model/" class="print-no-link">#memory model</a>
+        <a href="/lluvialuo/lluvialuo.github.io/tags/memory-model/" class="print-no-link">#memory model</a>
       
     </div>
   
@@ -580,7 +580,7 @@
   <div class="license-box my-3">
     <div class="license-title">
       <div>Linux:高速缓存</div>
-      <div>https://lluvialuo.github.io/2024/05/12/Linux-高速缓存/</div>
+      <div>https://github.com/lluvialuo/lluvialuo.github.io/2024/05/12/Linux-高速缓存/</div>
     </div>
     <div class="license-meta">
       
@@ -628,7 +628,7 @@
                   <article class="post-next col-6">
                     
                     
-                      <a href="/2024/05/12/%E5%8D%8F%E7%A8%8B%E5%BA%93/" title="协程库">
+                      <a href="/lluvialuo/lluvialuo.github.io/2024/05/12/%E5%8D%8F%E7%A8%8B%E5%BA%93/" title="协程库">
                         <span class="hidden-mobile">协程库</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="iconfont icon-arrowright"></i>
@@ -764,8 +764,8 @@
 
 <script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
 <script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
-<script  src="/js/events.js" ></script>
-<script  src="/js/plugins.js" ></script>
+<script  src="/lluvialuo/lluvialuo.github.io/js/events.js" ></script>
+<script  src="/lluvialuo/lluvialuo.github.io/js/plugins.js" ></script>
 
 
   <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
@@ -787,7 +787,7 @@
 
 
   
-    <script  src="/js/img-lazyload.js" ></script>
+    <script  src="/lluvialuo/lluvialuo.github.io/js/img-lazyload.js" ></script>
   
 
 
@@ -929,7 +929,7 @@
 
   <script  src="https://lib.baomitu.com/mathjax/3.2.2/es5/tex-mml-chtml.js" ></script>
 
-  <script  src="/js/local-search.js" ></script>
+  <script  src="/lluvialuo/lluvialuo.github.io/js/local-search.js" ></script>
 
 
 
@@ -937,7 +937,7 @@
 
 <!-- 主题的启动项，将它保持在最底部 -->
 <!-- the boot of the theme, keep it at the bottom -->
-<script  src="/js/boot.js" ></script>
+<script  src="/lluvialuo/lluvialuo.github.io/js/boot.js" ></script>
 
 
   
