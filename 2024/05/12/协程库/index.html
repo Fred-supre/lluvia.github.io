@@ -1,0 +1,1060 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/lluvialuo/img/%E5%A4%B4%E5%83%8F.jpeg">
+  <link rel="icon" href="/lluvialuo/img/%E5%A4%B4%E5%83%8F.jpeg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Lluvia Luo">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="一、协程1.1 基本概念 协程可以理解为一种用户态的轻量级线程，一个线程里跑多个协程。  协程分为对称协程和非对称协程，对称协程就是当协程切换的时候他可以切换到任意其他的协程，比如goroutine；而非对称协程只能切换到调用他的调度器。  C20以前，c&#x2F;c++不直接支持协程语义，但有不少开源的协程库， 目前大概有三种实现协程的方式：  利用glibc的ucontext组件：coroutine">
+<meta property="og:type" content="article">
+<meta property="og:title" content="协程库">
+<meta property="og:url" content="https://github.com/lluvialuo/2024/05/12/%E5%8D%8F%E7%A8%8B%E5%BA%93/index.html">
+<meta property="og:site_name" content="Lluvia&#39;s blog">
+<meta property="og:description" content="一、协程1.1 基本概念 协程可以理解为一种用户态的轻量级线程，一个线程里跑多个协程。  协程分为对称协程和非对称协程，对称协程就是当协程切换的时候他可以切换到任意其他的协程，比如goroutine；而非对称协程只能切换到调用他的调度器。  C20以前，c&#x2F;c++不直接支持协程语义，但有不少开源的协程库， 目前大概有三种实现协程的方式：  利用glibc的ucontext组件：coroutine">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://github.com/lluvialuo/2024/05/12/%E5%8D%8F%E7%A8%8B%E5%BA%93/stack-frame.png">
+<meta property="article:published_time" content="2024-05-12T06:53:03.000Z">
+<meta property="article:modified_time" content="2024-05-12T07:04:20.216Z">
+<meta property="article:author" content="Lluvia Luo">
+<meta property="article:tag" content="协程">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://github.com/lluvialuo/2024/05/12/%E5%8D%8F%E7%A8%8B%E5%BA%93/stack-frame.png">
+  
+  
+  
+  <title>协程库 - Lluvia&#39;s blog</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/lluvialuo/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/lluvialuo/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/lluvialuo/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"github.com","root":"/lluvialuo/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/lluvialuo/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/lluvialuo/js/utils.js" ></script>
+  <script  src="/lluvialuo/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.2.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/lluvialuo/">
+      <strong>Lluvia</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/lluvialuo/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/lluvialuo/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/lluvialuo/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/lluvialuo/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/lluvialuo/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/lluvialuo/img/mainpage.jpg') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="协程库"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2024-05-12 14:53" pubdate>
+          2024年5月12日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          9.9k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          83 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">协程库</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h1 id="一、协程"><a href="#一、协程" class="headerlink" title="一、协程"></a>一、协程</h1><h2 id="1-1-基本概念"><a href="#1-1-基本概念" class="headerlink" title="1.1 基本概念"></a>1.1 基本概念</h2><ul>
+<li><p>协程可以理解为一种用户态的轻量级线程，一个线程里跑多个协程。</p>
+</li>
+<li><p>协程分为<strong>对称协程</strong>和<strong>非对称协程</strong>，对称协程就是当协程切换的时候他可以切换到任意其他的协程，比如<code>goroutine</code>；而非对称协程只能切换到调用他的调度器。</p>
+</li>
+<li><p><code>C20</code>以前，<code>c/c++</code>不直接支持协程语义，但有不少开源的协程库， 目前大概有三种实现协程的方式：</p>
+<ul>
+<li>利用<code>glibc</code>的<code>ucontext</code>组件：<a href="https://github.com/cloudwu/coroutine/">coroutine</a></li>
+<li>利用汇编代码来切换上下文：<a href="https://github.com/Tencent/libco">libco</a></li>
+<li>利用C语言的<code>setjmp</code>和<code>longjmp</code>：<a href="https://github.com/sustrik/libmill">libmill</a></li>
+</ul>
+</li>
+<li><p>当然在<code>C20</code>的新特性中在语言级别支持了协程</p>
+</li>
+</ul>
+<h2 id="1-2-解决的问题"><a href="#1-2-解决的问题" class="headerlink" title="1.2 解决的问题"></a>1.2 解决的问题</h2><ul>
+<li>在IO密集型的程序中，CPU等待IO结果往往是非常频繁的事情，如果按照我们常规的思维写处理IO的代码，如：<code>accept --&gt; read --&gt; process --&gt; write</code>。这个流程当中三个地方将会面临CPU的阻塞等待问题（如果使用的是阻塞IO的话），而一台服务器是需要处理成千上万的连接请求的，所以这里的阻塞等待是万万不能接受的。</li>
+<li>最早的解决方案就是开新的线程来处理每一个连接请求，这样即使发生阻塞也是在各自的线程中发生阻塞，而不会影响服务器相应别的请求。但是这样带来的问题就是连接多起来之后需要申请很多的线程资源，许多线程发生阻塞之后也会给系统带来额外的负担。</li>
+<li>接着出现的方案是使用<code>epoll</code>在单个线程内同时监听多个连接，当监听到指定的信号之后再执行相应的处理逻辑。这样通过较少的线程就能处理大量的连接，此方案的性能也非常的优秀。但是这种基于事件的异步处理方案的处理流程是打散，我们不能按照顺序思维写整个处理流程。</li>
+<li>最后协程其实就是为了解决异步处理逻辑混乱的方案，可以用顺序思维流程的代码写出异步处理的代码。</li>
+</ul>
+<h1 id="二、coroutine实现"><a href="#二、coroutine实现" class="headerlink" title="二、coroutine实现"></a>二、<code>coroutine</code>实现</h1><blockquote>
+<p>参考资料：</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/LMFQYJ/article/details/79211084">云风coroutine源码分析</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/qq910894904/article/details/41911175">ucontext-人人都可以实现的简单协程库</a></p>
+</blockquote>
+<ul>
+<li><code>glibc</code>中提供了<code>ucontext</code>库函数用于操作上下文，基于这组提供的函数可以实现上下文的切换，从而可以实现协程。</li>
+</ul>
+<h2 id="2-1-ucontext"><a href="#2-1-ucontext" class="headerlink" title="2.1 ucontext"></a>2.1 <code>ucontext</code></h2><ul>
+<li>在类<code>System V</code>环境中，头文件<code>&lt;ucontext.h&gt;</code>中定义了一个核心结构体和四个函数用以支持用户级的线程切换。</li>
+<li>核心结构体是<code>ucontext_t</code>，它是保存上下文信息的核心数据结构，基本结构如下：<ul>
+<li><code>uc_link</code>的类型是<code>ucontext_t*</code>，其存储的是当前上下文运行完成之后或者被挂起时，应退出到的位置；</li>
+<li><code>uc_sigmask</code>为该上下文中的阻塞信号集合；</li>
+<li><code>uc_stack</code>为该上下文中使用的栈；</li>
+<li><code>uc_mcontext</code>保存上下文的特定机器表示，包括调用线程的特定寄存器等。</li>
+</ul>
+</li>
+</ul>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-keyword">typedef</span> <span class="hljs-keyword">struct</span> <span class="hljs-title class_">ucontext</span> &#123;<br>    <span class="hljs-keyword">struct</span> <span class="hljs-title class_">ucontext</span> *uc_link;       <span class="hljs-comment">// 该上下文执行完时要恢复的上下文</span><br>    <span class="hljs-type">sigset_t</span>         uc_sigmask;  <br>    <span class="hljs-type">stack_t</span>          uc_stack;      <span class="hljs-comment">//使用的栈</span><br>    <span class="hljs-type">mcontext_t</span>       uc_mcontext;  <br>    ...  <br>&#125; <span class="hljs-type">ucontext_t</span>;<br><br><span class="hljs-keyword">typedef</span> <span class="hljs-keyword">struct</span><br>  &#123;<br>    <span class="hljs-type">void</span> *ss_sp;<br>    <span class="hljs-type">int</span> ss_flags;<br>    <span class="hljs-type">size_t</span> ss_size;<br>  &#125; <span class="hljs-type">stack_t</span>;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>然后是核心的四个函数：<ul>
+<li><code>getcontext</code>：初始化<code>ucp</code>结构体，将当前的上下文保存到<code>ucp</code>中。</li>
+<li><code>makecontext</code>：修改通过<code>getcontext</code>取得的上下文<code>ucp</code>（这意味着**调用<code>makecontext</code>前必须先调用<code>getcontext</code>**）。然后给该上下文指定一个栈空间<code>ucp-&gt;stack</code>，设置后继的上下文<code>ucp-&gt;uc_link</code>。如果这里设置的要返回的上下文为<code>NULL</code>，则当前线程会直接退出。</li>
+<li><code>setcontext</code>：设置当前的上下文为<code>ucp</code>，这里的<code>ucp</code>应该通过<code>getcontext</code>或者<code>makecontext</code>取得，如果调用成功则不返回。其实很好理解这里的直接设置上下文操作，就是直接将执行流程跳转到<code>ucp</code>，这里也没有去保存当前上下文，所以当前的运行环境一定是直接丢失的，也就不会返回了。当然跳转的上下文中可能设置了后继上下文<code>ucp-&gt;uc_link</code>，如果当前运行完之后会返回到这里记录的后继上下文。</li>
+<li><code>swapcontext</code>：不同于前者直接进行跳转，<code>swapcontext</code>会将当前的上下文信息换出并存储到<code>oucp</code>，而我们可以将要跳转的上下文的后继<code>ucp-&gt;uc_link</code>提前设置成<code>oucp</code>（注意这里是写指针，<code>oucp</code>里面当前保存的上下文其实还不是真正的返回位置），然后在调用<code>swapcontext</code>时第一个参数就填<code>oucp</code>，那就将当前上下文写入到<code>oucp</code>中了，于是在<code>ucp</code>上下文挂起或者退出的时候自然能返回当前调用<code>swapcontext</code>的位置了。</li>
+</ul>
+</li>
+</ul>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">getcontext</span><span class="hljs-params">(<span class="hljs-type">ucontext_t</span> *ucp)</span></span>; <span class="hljs-comment">//将当前上下文保存到ucp</span><br><span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">makecontext</span><span class="hljs-params">(<span class="hljs-type">ucontext_t</span> *ucp, <span class="hljs-type">void</span> (*func)(), <span class="hljs-type">int</span> argc, ...)</span></span>; <span class="hljs-comment">//修改上下文入口函数</span><br><span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">setcontext</span><span class="hljs-params">(<span class="hljs-type">const</span> <span class="hljs-type">ucontext_t</span> *ucp)</span></span>; <span class="hljs-comment">//切换到上下文ucp</span><br><span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">swapcontext</span><span class="hljs-params">(<span class="hljs-type">ucontext_t</span> *oucp, <span class="hljs-type">ucontext_t</span> *ucp)</span></span>; <span class="hljs-comment">//保存当前上下文到oucp，切换到上下文ucp</span><br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>上下文的核心其实就是当前寄存器状态（这包含了<code>pc, sp</code>以及各种通用寄存器），以及栈空间（每个线程&#x2F;协程都是需要有单独的栈空间的）。当利用<code>ucontext</code>创建新的上下文的时候是需要我们创建新的栈空间的，而栈的大小设置是件很困难的事情。</li>
+</ul>
+<h2 id="2-2-协程库实现"><a href="#2-2-协程库实现" class="headerlink" title="2.2 协程库实现"></a>2.2 协程库实现</h2><ul>
+<li><code>coroutine</code>是云风在2012年利用<code>ucontext</code>实现的一个非常简单的非对称协程库，其只提供了如下的几个函数接口：</li>
+</ul>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-meta">#<span class="hljs-keyword">define</span> COROUTINE_DEAD 0  <span class="hljs-comment">//协程状态</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> COROUTINE_READY 1</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> COROUTINE_RUNNING 2</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> COROUTINE_SUSPEND 3</span><br><br><span class="hljs-keyword">struct</span> <span class="hljs-title class_">schedule</span>; <span class="hljs-comment">//协程调度器</span><br><br><span class="hljs-function"><span class="hljs-keyword">typedef</span> <span class="hljs-title">void</span> <span class="hljs-params">(*coroutine_func)</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> schedule *, <span class="hljs-type">void</span> *ud)</span></span>; <span class="hljs-comment">//协程执行函数</span><br><br><span class="hljs-keyword">struct</span> <span class="hljs-title class_">schedule</span> * <span class="hljs-built_in">coroutine_open</span>(<span class="hljs-type">void</span>); <span class="hljs-comment">//创建协程调度器</span><br><span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">coroutine_close</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> schedule *)</span></span>; <span class="hljs-comment">//关闭协程调度器</span><br><br><span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">coroutine_new</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> schedule *, coroutine_func, <span class="hljs-type">void</span> *ud)</span></span>; <span class="hljs-comment">//用协程调度器创建一个协程</span><br><span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">coroutine_resume</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> schedule *, <span class="hljs-type">int</span> id)</span></span>; <span class="hljs-comment">//恢复id号协程</span><br><span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">coroutine_status</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> schedule *, <span class="hljs-type">int</span> id)</span></span>; <span class="hljs-comment">//返回id号协程的状态</span><br><span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">coroutine_running</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> schedule *)</span></span>; <span class="hljs-comment">//返回正在执行的协程id</span><br><span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">coroutine_yield</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> schedule *)</span></span>; <span class="hljs-comment">//保存上下文后中断当前协程执行</span><br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>这是一个非对称的协程库，我们创建的协程在运行完之后会退出到<code>&quot;main&quot;</code>的运行流程中，然后再在主流程中选择需要恢复运行的协程。</li>
+</ul>
+<p><strong><code>schedule</code></strong></p>
+<ul>
+<li>首先是<code>schedule</code>结构体，其实就用于操作协程调度的类：<ul>
+<li><code>stack</code>是公共使用的栈空间，每个运行的协程最终都是在这个公共的栈空间中运行的，所以协程切换的时候会涉及到栈的拷贝，后面会详细说明；</li>
+<li><code>main</code>其实就是用于保存主流程上下文的，便于协程发生切换的时候退出到主流程；</li>
+<li><code>co</code>存储协程的数组，<code>nco, cap</code>记录当前数组的容量和使用情况；</li>
+<li><code>running</code>存储当前正在运行的协程。</li>
+</ul>
+</li>
+</ul>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-keyword">struct</span> <span class="hljs-title class_">schedule</span> &#123;<br>    <span class="hljs-type">char</span> stack[STACK_SIZE];<br>    <span class="hljs-type">ucontext_t</span> main;<br>    <span class="hljs-type">int</span> nco;<br>    <span class="hljs-type">int</span> cap;<br>    <span class="hljs-type">int</span> running;<br>    <span class="hljs-keyword">struct</span> <span class="hljs-title class_">coroutine</span> **co;<br>&#125;;<br></code></pre></td></tr></table></figure>
+
+<p><strong><code>coroutine</code></strong></p>
+<ul>
+<li>然后是<code>coroutine</code>结构体，用于存储协程的基本信息：<ul>
+<li><code>func</code>是这个协程的函数入口，函数的定义必须符合<code>coroutine_func</code>类型定义，<code>ud</code>是入参；</li>
+<li><code>ctx</code>用于保存当前协程上下文，便于在挂起之后能够恢复到协程挂起的位置继续执行；</li>
+<li><code>stack</code>是在协程发生挂起的时候，暂存当前协程的栈信息的。</li>
+</ul>
+</li>
+</ul>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-keyword">struct</span> <span class="hljs-title class_">coroutine</span> &#123;<br>    coroutine_func func;<br>    <span class="hljs-type">void</span> *ud;<br>    <span class="hljs-type">ucontext_t</span> ctx;<br>    <span class="hljs-keyword">struct</span> <span class="hljs-title class_">schedule</span> * sch;<br>    <span class="hljs-type">ptrdiff_t</span> cap;<br>    <span class="hljs-type">ptrdiff_t</span> size;<br>    <span class="hljs-type">int</span> status;<br>    <span class="hljs-type">char</span> *stack;<br>&#125;;<br></code></pre></td></tr></table></figure>
+
+<p><strong><code>coroutine_new</code></strong></p>
+<ul>
+<li>功能比较简单，其实就是把一个函数注册成协程，并且返回协程标识符。这里可能遇到<code>co</code>数组空间不足的可能需要扩容。</li>
+</ul>
+<p><strong><code>coroutine_resume</code></strong></p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-function"><span class="hljs-type">void</span> </span><br><span class="hljs-function"><span class="hljs-title">coroutine_resume</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> schedule * S, <span class="hljs-type">int</span> id)</span> </span>&#123;<br>    <span class="hljs-built_in">assert</span>(S-&gt;running == <span class="hljs-number">-1</span>);<br>    <span class="hljs-built_in">assert</span>(id &gt;=<span class="hljs-number">0</span> &amp;&amp; id &lt; S-&gt;cap);<br>    <span class="hljs-keyword">struct</span> <span class="hljs-title class_">coroutine</span> *C = S-&gt;co[id];<br>    <span class="hljs-keyword">if</span> (C == <span class="hljs-literal">NULL</span>)<br>        <span class="hljs-keyword">return</span>;<br>    <span class="hljs-type">int</span> status = C-&gt;status;<br>    <span class="hljs-keyword">switch</span>(status) &#123;<br>    <span class="hljs-keyword">case</span> COROUTINE_READY:<br>        <span class="hljs-built_in">getcontext</span>(&amp;C-&gt;ctx);<br>        C-&gt;ctx.uc_stack.ss_sp = S-&gt;stack;<br>        C-&gt;ctx.uc_stack.ss_size = STACK_SIZE;<br>        C-&gt;ctx.uc_link = &amp;S-&gt;main;<br>        S-&gt;running = id;<br>        C-&gt;status = COROUTINE_RUNNING;<br>        <span class="hljs-type">uintptr_t</span> ptr = (<span class="hljs-type">uintptr_t</span>)S;<br>        <span class="hljs-built_in">makecontext</span>(&amp;C-&gt;ctx, (<span class="hljs-built_in">void</span> (*)(<span class="hljs-type">void</span>)) mainfunc, <span class="hljs-number">2</span>, (<span class="hljs-type">uint32_t</span>)ptr, (<span class="hljs-type">uint32_t</span>)(ptr&gt;&gt;<span class="hljs-number">32</span>));<br>        <span class="hljs-built_in">swapcontext</span>(&amp;S-&gt;main, &amp;C-&gt;ctx);<br>        <span class="hljs-keyword">break</span>;<br>    <span class="hljs-keyword">case</span> COROUTINE_SUSPEND:<br>        <span class="hljs-built_in">memcpy</span>(S-&gt;stack + STACK_SIZE - C-&gt;size, C-&gt;stack, C-&gt;size);<br>        S-&gt;running = id;<br>        C-&gt;status = COROUTINE_RUNNING;<br>        <span class="hljs-built_in">swapcontext</span>(&amp;S-&gt;main, &amp;C-&gt;ctx);<br>        <span class="hljs-keyword">break</span>;<br>    <span class="hljs-keyword">default</span>:<br>        <span class="hljs-built_in">assert</span>(<span class="hljs-number">0</span>);<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>恢复指定协程的运行，这里可能遇到两种情况：一种是该协程第一次运行，走<code>COROUTINE_READY</code>分支；第二种情况是该协程被挂起之后再运行，走<code>COROUTINE_SUSPEND</code>分支。</li>
+<li>首次运行需要我们设置<code>ucontext</code>相关的信息，所以需要调用<code>getcontext</code>并设置栈以及返回位置的上下文，然后通过<code>makecontext</code>设置协程的入口函数为<code>mainfunc</code>。这里并没有直接设置成用户注册的函数，是因为需要额外做一些诸如运行后释放资源的操作，所以这里包了一层函数。最后通过<code>swapcontext</code>切换到协程运行。</li>
+<li>如果是挂起之后的恢复，则需要恢复栈数据，就是把<code>coroutine-&gt;stack</code>中暂存的栈数据复制到<code>schedule-&gt;stack</code>公共栈空间中，然后再通过<code>swapcontext</code>切换到协程运行。</li>
+</ul>
+<p><strong><code>coroutine_yield</code></strong></p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-function"><span class="hljs-type">void</span></span><br><span class="hljs-function"><span class="hljs-title">coroutine_yield</span><span class="hljs-params">(<span class="hljs-keyword">struct</span> schedule * S)</span> </span>&#123;<br>    <span class="hljs-type">int</span> id = S-&gt;running;<br>    <span class="hljs-built_in">assert</span>(id &gt;= <span class="hljs-number">0</span>);<br>    <span class="hljs-keyword">struct</span> <span class="hljs-title class_">coroutine</span> * C = S-&gt;co[id];<br>    <span class="hljs-built_in">assert</span>((<span class="hljs-type">char</span> *)&amp;C &gt; S-&gt;stack);<br>    _save_stack(C,S-&gt;stack + STACK_SIZE);<br>    C-&gt;status = COROUTINE_SUSPEND;<br>    S-&gt;running = <span class="hljs-number">-1</span>;<br>    <span class="hljs-built_in">swapcontext</span>(&amp;C-&gt;ctx , &amp;S-&gt;main);<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>挂起操作是在协程流程中调用的，挂起之前需要暂存当前协程的栈空间数据，这是通过<code>_save_stack</code>函数的实现的。</li>
+<li>然后就是更新状态，并通过<code>swapcontext</code>切换到主流程中。</li>
+<li>简单说一下<code>_save_stack</code>函数，用了一个很巧妙的方法，在函数内部定义了一个局部变量<code>dummy</code>，此时<code>dummy</code>的地址应该是栈顶，而栈底是已知的，这样我们就知道当前协程使用的栈的大小。</li>
+</ul>
+<h1 id="三、libco实现"><a href="#三、libco实现" class="headerlink" title="三、libco实现"></a>三、<code>libco</code>实现</h1><ul>
+<li><code>libco</code>是微信后台大规模使用的<code>c/c++</code>协程库，2013年至今稳定运行在微信后台的数万台机器上。</li>
+<li>通过提供<code>socket</code>族函数的<code>hook</code>，使得后台逻辑服务几乎不用修改逻辑代码就可以完成异步化改造。</li>
+<li>上下文切换采用的汇编实现方案，手动保存当前CPU的寄存器状态。</li>
+</ul>
+<h2 id="3-1-动态链接实现hook"><a href="#3-1-动态链接实现hook" class="headerlink" title="3.1 动态链接实现hook"></a>3.1 动态链接实现<code>hook</code></h2><blockquote>
+<p>参考资料：</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/MOU_IT/article/details/115050472">libco源码阅读（八）：hook机制</a></p>
+<p><a target="_blank" rel="noopener" href="http://kaiyuan.me/2017/05/03/function_wrapper/">动态链接黑魔法: Hook 系统函数</a></p>
+</blockquote>
+<h3 id="3-1-1-why…"><a href="#3-1-1-why…" class="headerlink" title="3.1.1 why…?"></a>3.1.1 why…?</h3><ul>
+<li>对于线程来说，当某些系统调用发生阻塞时会被系统自动挂起并等待特定的信号到来，并且把当前的CPU调度给另外的线程，这个过程对用户是完全无感的。</li>
+<li>但协程是用户态的概念，操作系统并不知道它的存在，如果我们在协程中调用了某个会阻塞的接口，则会直接将当前线程阻塞，并不会讲CPU调度给别的协程。协程系统中想要让渡CPU需要手动调用<code>co_resume</code>或<code>co_yield</code>这样的方法。</li>
+<li>因此我们如果想要在原来的代码中引入协程，肯定是需要做很多<strong>侵入式</strong>改造的，即在原来的业务逻辑中加入很多协程相关的调用。</li>
+<li>而基于动态链接实现的<code>hook</code>方案可以在不更改原代码的基础上修改要调用的函数的逻辑。基于此原理我们可以修改各种系统调用函数（<code>libco</code>主要是修改了<code>socket</code>函数族），从而实现非侵入式的异步化改造。</li>
+</ul>
+<h3 id="3-1-2-hook机制"><a href="#3-1-2-hook机制" class="headerlink" title="3.1.2 hook机制"></a>3.1.2 <code>hook</code>机制</h3><ul>
+<li><p><code>hook</code>机制本质上是一种函数的劫持技术，比如我们通常需要调用<code>malloc</code>函数来进行内存分配，那么能不能我们自己封装一个同名、同入参和同返回值的<code>malloc</code>函数来替代系统的<code>malloc</code>函数，在我们自己封装的<code>malloc</code>函数中实现一些特定的功能，而且也能回调系统的<code>malloc</code>，这就是<code>hook</code>机制。</p>
+</li>
+<li><p>系统提供给我们的<code>dlopen</code>、<code>dlsym</code>族函数可以用来操作动态链接库，比如我们要<code>hook</code>系统调用函数<code>read</code>，我们可以使用<code>dlsym</code>族函数获取<code>hook</code>前函数的地址，这样就可以在自己实现的<code>read</code>中回调原函数，并加上一些额外的逻辑，并且在运行是会调用我们的版本了。</p>
+</li>
+</ul>
+<h3 id="3-1-3-动态链接"><a href="#3-1-3-动态链接" class="headerlink" title="3.1.3 动态链接"></a>3.1.3 动态链接</h3><ul>
+<li>动态链接是指在程序编译时并不会被连接动态库到目标代码中，而是在程序运行是才被载入。不同的应用程序如果调用相同的库，那么在内存里只需要有一份该共享库的实例，规避了空间浪费问题。</li>
+<li>动态库在程序运行是才被载入，也解决了静态库对程序的更新、部署和发布页会带来麻烦。用户只需要更新动态库即可。</li>
+<li>在<code>Linux</code>中动态链接库是<code>.so</code>结尾的文件，本质和我们编译生成的<code>.o</code>文件是类似的，在加载程序或者运行程序发现需要访问动态链接库中的函数实现时，会在所有的库空间中去寻找对应的实现。<strong>而如果同一个函数接口在多个动态库中都被实现过，那么到底调用哪个实现就取决于先查找到谁。</strong></li>
+</ul>
+<h3 id="3-1-4-环境变量LD-PRELOAD"><a href="#3-1-4-环境变量LD-PRELOAD" class="headerlink" title="3.1.4 环境变量LD_PRELOAD"></a>3.1.4 环境变量LD_PRELOAD</h3><ul>
+<li><code>LD_PRELOAD</code>是<code>Linux</code>系统的一个环境变量，它可以影响程序的运行时的链接<code>(Runtime linker)</code>，允许你定义在程序运行前优先加载的动态链接库。</li>
+<li>这个功能主要就是用来有选择性的载入不同动态链接库中的相同函数。通过这个环境变量，我们可以在主程序和其动态链接库的中间加载别的动态链接库，甚至覆盖正常的函数库。一方面，我们可以以此功能来使用自己的或是更好的函数（无需更改别人的源码）；而另一方面，我们也可以向别人的程序注入程序，从而达到特定的目的。</li>
+<li>系统寻找动态库时加载顺序为：<ol>
+<li><code>LD_PRELOAD</code></li>
+<li><code>LD_LIBRARY_PATH</code></li>
+<li><code>/etc/ld.so.cache</code></li>
+<li><code>/lib</code></li>
+<li><code>/usr/lib</code></li>
+</ol>
+</li>
+</ul>
+<h3 id="3-1-5-示例"><a href="#3-1-5-示例" class="headerlink" title="3.1.5 示例"></a>3.1.5 示例</h3><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-comment">// hookread.cpp</span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;dlfcn.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;unistd.h&gt;</span></span><br> <br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;iostream&gt;</span></span><br> <br><span class="hljs-function"><span class="hljs-keyword">typedef</span> <span class="hljs-title">ssize_t</span> <span class="hljs-params">(*<span class="hljs-type">read_pfn_t</span>)</span><span class="hljs-params">(<span class="hljs-type">int</span> fildes, <span class="hljs-type">void</span> *buf, <span class="hljs-type">size_t</span> nbyte)</span></span>;<br> <br><span class="hljs-type">static</span> <span class="hljs-type">read_pfn_t</span> g_sys_read_func = (<span class="hljs-type">read_pfn_t</span>)<span class="hljs-built_in">dlsym</span>(RTLD_NEXT,<span class="hljs-string">&quot;read&quot;</span>);<br> <br><span class="hljs-function"><span class="hljs-type">ssize_t</span> <span class="hljs-title">read</span><span class="hljs-params">( <span class="hljs-type">int</span> fd, <span class="hljs-type">void</span> *buf, <span class="hljs-type">size_t</span> nbyte )</span></span>&#123;<br>    std::cout &lt;&lt; <span class="hljs-string">&quot;进入 hook read\n&quot;</span>;<br>    <span class="hljs-keyword">return</span> <span class="hljs-built_in">g_sys_read_func</span>(fd, buf, nbyte);<br>&#125;<br> <br><span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">co_enable_hook_sys</span><span class="hljs-params">()</span></span>&#123;<br>    std::cout &lt;&lt; <span class="hljs-string">&quot;可 hook\n&quot;</span>;<br>&#125;<br> <br><span class="hljs-comment">// main.cpp</span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;bits/stdc++.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;sys/socket.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;netinet/in.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;arpa/inet.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;unistd.h&gt;</span></span><br> <br><span class="hljs-keyword">using</span> <span class="hljs-keyword">namespace</span> std;<br> <br><span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">main</span><span class="hljs-params">()</span></span>&#123;<br>    <span class="hljs-type">int</span> fd = <span class="hljs-built_in">socket</span>(PF_INET, SOCK_STREAM, <span class="hljs-number">0</span>);<br>    <span class="hljs-type">char</span> buffer[<span class="hljs-number">10000</span>];<br>    <br>    <span class="hljs-type">int</span> res = <span class="hljs-built_in">read</span>(fd, buffer ,<span class="hljs-number">10000</span>);<br>    <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs shell">g++ -o main main.cpp<br>g++ -o hookread.so -fPIC -shared -D_GNU_SOURCE hookread.cpp -ldl<br>LD_PRELOAD=./hookread.so ./main<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li><p>但是libco并不是这样做的，整个<code>libco</code>中你都看不到<code>LD_PRELOAD</code>，<code>libco</code>使用了一种特殊的方法，即通过在用户代码中包含<code>co_hook_sys_call.cpp</code>中定义的函数，这样也可以做到使用我们自己的库去替换系统的库。</p>
+</li>
+<li><p>实现也很简单，就是单独编译得到<code>hookread.o</code>文件，然后再编译<code>main.cpp</code>： <code>g++ main.cpp -ldl hookread.o</code>。但这种方法需要在用户代码中引入头文件<code>hookread.h</code>。</p>
+</li>
+</ul>
+<h2 id="3-2-函数调用过程"><a href="#3-2-函数调用过程" class="headerlink" title="3.2 函数调用过程"></a>3.2 函数调用过程</h2><blockquote>
+<p>参考资料：</p>
+<p><a target="_blank" rel="noopener" href="https://cs.pynote.net/hd/asm/202212111/#x64">学习x86-64寄存器（x64 Register Set）</a></p>
+<p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/440016053#112-intel-x64%E5%AF%84%E5%AD%98%E5%99%A8">x86-64寄存器和栈帧</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/MOU_IT/article/details/114791921">libco源码阅读（四）：协程的上下文环境</a></p>
+</blockquote>
+<h3 id="3-2-1-栈帧"><a href="#3-2-1-栈帧" class="headerlink" title="3.2.1 栈帧"></a>3.2.1 栈帧</h3><div style="text-align:center;">
+    <img src="stack-frame.png" srcset="/lluvialuo/img/loading.gif" lazyload alt="stack-frame.png" width="208" height="240" class="jop-noMdConv">
+</div>
+
+<ul>
+<li>首先在Linux程序的虚拟地址空间中，栈段是从高地址向低地址增长的，而堆是从低地址向高地址增长，所以我们的手动申请的栈空间是需要设置成从最高地址开始使用的。</li>
+<li>在<code>x86_64</code>架构的CPU中有两个专门用来管理函数栈帧的寄存器，分别是<code>rbp</code>, <code>rsp</code>。前者是当前栈帧的底部（高地址），后者是当前栈帧的顶部（低地址）。</li>
+<li>栈帧需要完成的主要工作是为局部变量开辟空间，此外还需要处理调用函数的一些相关工作。</li>
+</ul>
+<p><strong>函数调用</strong></p>
+<ul>
+<li>首先说函数调用（<code>caller</code>方的工作），我们需要完成的工作主要包括传递参数以及记录函数跳转之后的返回地址。写入参的过程是以当前的<code>rsp</code>为基地址向高地址写入的，并且参数是从右往左以此写入，所以上图青色部分是<code>param N ... param 1</code>。注意这里是以栈顶往高地址写数据，即存储参数的空间是调用者的栈帧空间，这里是需要提前预留出来的。</li>
+<li>参数写完之后紧接的指令就是<code>call func</code>调用跳转，这条指令除了将<code>rip</code>更换成目标函数入口位置还会同时保存函数调用后的返回位置，这个过程是完全自动完成的设置<code>rip</code>的操作没有体现在汇编代码中。返回地址是紧接着在栈顶位置写入。</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs assembly">call foo		; 等价于下面的指令<br><br>pushq %rip 	    ; 保存下一条指令（第41行的代码地址）的地址，用于函数返回继续执行<br>jump foo 		; 跳转到函数foo<br></code></pre></td></tr></table></figure>
+
+<p><strong>函数进入</strong></p>
+<ul>
+<li>进入一个新的函数之后首先需要保存当前寄存器中的数据，方便调用完成之后恢复状态。因为每个函数需要用到的寄存器是不同的，所以要保存那些寄存器根据需要决定。但<code>rbp</code>和<code>rsp</code>是肯定需要更改的，所以进入函数和推出时固定需要保存和恢复<code>rbp</code>与<code>rsp</code>。</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs asm">push rbp       ; 函数最开始，保存rbp到stack<br>mov  rbp, rsp  ; 扩展stack之前，保存此值，作为新stack frame的底<br>; ...<br>mov  rsp, rbp  ; 最后恢复<br>pop  rbp  <br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>然后需要扩展当前函数的栈帧空间，即让<code>rsp</code>减去一个值，局部变量需要用到的空间就分配完成了。</li>
+</ul>
+<p><strong>函数退出</strong></p>
+<ul>
+<li>退出的时候需要注意将之前保存过的寄存器值进行恢复，再恢复<code>rbp</code>和<code>rsp</code>；然后调用<code>ret</code>，会自动根据当前<code>sp</code>地址存储的返回位置进行跳转。此时一个函数的调用就完成了。</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs assembly">ret			; 等价于下面的指令<br><br>popq %rip 	; 恢复指令指针寄存器<br></code></pre></td></tr></table></figure>
+
+<h3 id="3-2-2-传参优化"><a href="#3-2-2-传参优化" class="headerlink" title="3.2.2 传参优化"></a>3.2.2 传参优化</h3><ul>
+<li>根据前面的描述，当我们在为调用函数设置传入参数的时候是通过栈来存储的，但实际上函数的参数比较少的时候会使用寄存器来完成传参，比如函数只有两个参数<code>func(int* arg1, int* arg2)</code>的时候，会使用<code>rdi</code>存<code>arg1</code>，使用<code>rsi</code>存<code>arg2</code>。</li>
+</ul>
+<h2 id="3-3-关键数据结构"><a href="#3-3-关键数据结构" class="headerlink" title="3.3 关键数据结构"></a>3.3 关键数据结构</h2><h3 id="3-3-1-协程实体"><a href="#3-3-1-协程实体" class="headerlink" title="3.3.1 协程实体"></a>3.3.1 协程实体</h3><ul>
+<li><code>stCoRoutine_t</code>相当于<code>Linux</code>中管理线程&#x2F;进程的<code>task_struct</code>结构体，保存这协程的私有数据和协程切换时的上下文信息。</li>
+</ul>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-keyword">struct</span> <span class="hljs-title class_">stCoRoutine_t</span><br>&#123;<br>    stCoRoutineEnv_t *env; <span class="hljs-comment">// 协程的执行环境, 运行在同一个线程上的各协程是共享该结构</span><br>    <span class="hljs-type">pfn_co_routine_t</span> pfn;  <span class="hljs-comment">// 一个函数指针, 指向实际待执行的协程函数 </span><br>    <span class="hljs-type">void</span> *arg;             <span class="hljs-comment">// 函数的参数</span><br>    <span class="hljs-type">coctx_t</span> ctx;           <span class="hljs-comment">// 用于协程切换时保存CPU上下文（context）的,即 esp、ebp、eip 和其他通用寄存器的值</span><br>    <span class="hljs-type">char</span> cStart;           <span class="hljs-comment">// 协程是否执行过resume</span><br>    <span class="hljs-type">char</span> cEnd;             <span class="hljs-comment">// 协程是否执行结束</span><br>    <span class="hljs-type">char</span> cIsMain;          <span class="hljs-comment">// 是否为主协程修改</span><br>    <span class="hljs-type">char</span> cEnableSysHook;   <span class="hljs-comment">// 此协程是否hook库函数，即用自己实现的函数替代库函数</span><br>    <span class="hljs-type">char</span> cIsShareStack;    <span class="hljs-comment">// 是否开启共享栈模式</span><br> <br>    <span class="hljs-type">void</span> *pvEnv;           <span class="hljs-comment">// 保存程序系统环境变量的指针</span><br> <br>    <span class="hljs-comment">//char sRunStack[ 1024 * 128 ];</span><br>    stStackMem_t* stack_mem; <span class="hljs-comment">// 协程运行时的栈内存</span><br> <br>    <span class="hljs-comment">//save satck buffer while confilct on same stack_buffer;</span><br>    <span class="hljs-type">char</span>* stack_sp;         <span class="hljs-comment">// 保存栈顶指针sp</span><br>    <span class="hljs-type">unsigned</span> <span class="hljs-type">int</span> save_size; <span class="hljs-comment">// 保存协程的栈的buffer的大小</span><br>    <span class="hljs-type">char</span>* save_buffer;      <span class="hljs-comment">// 使用共享栈模式时，用于保存该协程的在共享栈中的内容</span><br> <br>    stCoSpec_t aSpec[<span class="hljs-number">1024</span>];<br>&#125;;<br></code></pre></td></tr></table></figure>
+
+<h3 id="3-3-2-协程上下文信息"><a href="#3-3-2-协程上下文信息" class="headerlink" title="3.3.2 协程上下文信息"></a>3.3.2 协程上下文信息</h3><ul>
+<li><code>coctx_t</code>保存协程的上下文，实际就是寄存器的值，<code>C/C++</code>都没有函数可以直接接触寄存器，所以操作这个参数的时候需要嵌入一点汇编代码。</li>
+</ul>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-keyword">struct</span> <span class="hljs-title class_">coctx_t</span><br>&#123;<br><span class="hljs-meta">#<span class="hljs-keyword">if</span> defined(__i386__)</span><br>    <span class="hljs-type">void</span> *regs[ <span class="hljs-number">8</span> ];  <span class="hljs-comment">// X86 32位架构下有8个通用寄存器</span><br><span class="hljs-meta">#<span class="hljs-keyword">else</span></span><br>    <span class="hljs-type">void</span> *regs[ <span class="hljs-number">14</span> ]; <span class="hljs-comment">// x86 64位下有16个寄存器，这里保存14个</span><br><span class="hljs-meta">#<span class="hljs-keyword">endif</span></span><br>    <span class="hljs-type">size_t</span> ss_size;  <span class="hljs-comment">// 栈的大小</span><br>    <span class="hljs-type">char</span> *ss_sp;     <span class="hljs-comment">// 栈顶指针esp</span><br>    <br>&#125;;<br></code></pre></td></tr></table></figure>
+
+<h3 id="3-3-3-私有栈和共享栈"><a href="#3-3-3-私有栈和共享栈" class="headerlink" title="3.3.3 私有栈和共享栈"></a>3.3.3 私有栈和共享栈</h3><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-keyword">struct</span> <span class="hljs-title class_">stStackMem_t</span><br>&#123;<br>    stCoRoutine_t* ocupy_co; <span class="hljs-comment">// 执行时占用的那个协程实体,也就是这个栈现在是那个协程在用</span><br>    <span class="hljs-type">int</span> stack_size;          <span class="hljs-comment">// 当前栈上未使用的空间</span><br>    <span class="hljs-type">char</span>* stack_bp;          <span class="hljs-comment">// stack_buffer + stack_size</span><br>    <span class="hljs-type">char</span>* stack_buffer;      <span class="hljs-comment">// 栈的起始地址,当然对于主协程来说这是堆上的空间</span><br> <br>&#125;;<br> <br><span class="hljs-keyword">struct</span> <span class="hljs-title class_">stShareStack_t</span><br>&#123;<br>    <span class="hljs-type">unsigned</span> <span class="hljs-type">int</span> alloc_idx; <span class="hljs-comment">// stack_array中我们在下一次调用中应该使用的那个共享栈的index</span><br>    <span class="hljs-type">int</span> stack_size;         <span class="hljs-comment">// 共享栈的大小，这里的大小指的是一个stStackMem_t*的大小</span><br>    <span class="hljs-type">int</span> count;              <span class="hljs-comment">// 共享栈的个数，共享栈可以为多个，所以以下为共享栈的数组</span><br>    stStackMem_t** stack_array; <span class="hljs-comment">// 栈的内容，这里是个数组，元素是stStackMem_t*</span><br>&#125;;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li><code>stStackMem_t</code>是运行协程私有栈的结构，<code>stShareStack_t</code>则是共享栈的结构。<code>libco</code>有两种协程栈的策略：<ul>
+<li>一种是一个协程分配一个栈，这也是默认的配置，因为默认大小为<code>128KB</code>，如果1024个协程就是<code>128MB</code>，这会带来较大空间的浪费。</li>
+<li>另一种策略为共享栈，即所有协程使用同一个栈，然后每个协程使用一个<code>buffer</code>来保存自己的栈内容，这个<code>buffer</code>大小根据具体的需要进行申请，因此可以节省内存。libco在进行协程切换的时候，先把共享栈的内容复制到要换出的协程实体的结构体buffer中，再把即将换入的协程实体的结构体中的buffer内容复制到共享栈中。这种方法是多个协程共用一个栈，但缺点是在协程切换的时候需要拷贝已使用的栈空间。</li>
+</ul>
+</li>
+</ul>
+<h3 id="3-3-4-线程环境"><a href="#3-3-4-线程环境" class="headerlink" title="3.3.4 线程环境"></a>3.3.4 线程环境</h3><ul>
+<li><code>stCoRoutineEnv_t</code>是一个非常关键的结构，是一个线程内所有协程共享的结构。其中存放了一些协程调度相关的数据，当然叫调度有些勉强，因为<code>libco</code>实现的非对称式协程实际上没有什么调度策略，完全就是协程切换会用到。</li>
+</ul>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-keyword">struct</span> <span class="hljs-title class_">stCoRoutineEnv_t</span><br>&#123;<br>    stCoRoutine_t *pCallStack[ <span class="hljs-number">128</span> ]; <span class="hljs-comment">// 协程的调用栈</span><br>    <span class="hljs-type">int</span> iCallStackSize;               <span class="hljs-comment">// 调用栈的栈顶指针</span><br>    stCoEpoll_t *pEpoll;              <span class="hljs-comment">// epoll的一个封装结构</span><br> <br>    <span class="hljs-comment">//for copy stack log lastco and nextco</span><br>    stCoRoutine_t* pending_co;       <span class="hljs-comment">// 目前占用共享栈的协程</span><br>    stCoRoutine_t* ocupy_co;         <span class="hljs-comment">// 与pending在同一个共享栈上的上一个协程</span><br>&#125;;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li><code>pCallStack</code> ： 如果将协程看成一种特殊的函数，那么这个 <code>pCallStack</code> 就时保存这些函数的调用链的栈。非对称协程最大特点就是协程间存在明确的调用关系；甚至在有些文献中，启动协程被称作 <code>call</code>，挂起协程叫 <code>return</code>。非对称协程机制下的被调协程只能返回到调用者协程，这种调用关系不能乱，因此必须将调用链保存下来。</li>
+<li><code>pending_co</code>和<code>ocupy_co</code>：对上次切换挂起的协程和嵌套调用的协程栈的拷贝，为了减少共享栈上数据的拷贝。在不使用共享栈模式时 <code>pending_co</code> 和 <code>ocupy_co</code> 都是空指针。（大概就是有的情况下共享栈中上次留下来的数据和现在将要重新写入的是一样的，可以省略恢复过程）</li>
+</ul>
+<h3 id="3-3-5-协程属性"><a href="#3-3-5-协程属性" class="headerlink" title="3.3.5 协程属性"></a>3.3.5 协程属性</h3><ul>
+<li>协程属性的结构体<code>stCoRoutineAttr_t</code>标记了栈的大小和是否使用共享栈。</li>
+</ul>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-keyword">struct</span> <span class="hljs-title class_">stCoRoutineAttr_t</span><br>&#123;<br>    <span class="hljs-type">int</span> stack_size;   <span class="hljs-comment">// 协程的私有栈或者共享栈大小</span><br>    stShareStack_t*  share_stack; <span class="hljs-comment">// 指向协程的共享栈</span><br>    <span class="hljs-built_in">stCoRoutineAttr_t</span>()<br>    &#123;<br>        stack_size = <span class="hljs-number">128</span> * <span class="hljs-number">1024</span>;<br>        share_stack = <span class="hljs-literal">NULL</span>;<br>    &#125;<br>&#125;__attribute__ ((packed));<br></code></pre></td></tr></table></figure>
+
+<h2 id="3-4-协程的基本操作"><a href="#3-4-协程的基本操作" class="headerlink" title="3.4 协程的基本操作"></a>3.4 协程的基本操作</h2><blockquote>
+<p>参考文献：</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/MOU_IT/article/details/114683197">libco源码阅读（三）：协程的创建和运行</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/MOU_IT/article/details/114791921">libco源码阅读（四）：协程的上下文环境</a></p>
+<p><a target="_blank" rel="noopener" href="http://kaiyuan.me/2017/07/10/libco/">libco 分析(上)：协程的实现</a></p>
+</blockquote>
+<ul>
+<li>协程的基本操作不外乎创建、恢复运行、挂起切换，这三个操作分别是由<code>co_create, co_resume, co_yield</code>三个函数完成的。</li>
+</ul>
+<h3 id="3-4-1-协程创建"><a href="#3-4-1-协程创建" class="headerlink" title="3.4.1 协程创建"></a>3.4.1 协程创建</h3><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">co_create</span><span class="hljs-params">(stCoRoutine_t **ppco, <span class="hljs-type">const</span> stCoRoutineAttr_t *attr, <span class="hljs-type">pfn_co_routine_t</span> pfn, <span class="hljs-type">void</span> *arg)</span></span><br><span class="hljs-function"></span>&#123;<br>    <span class="hljs-keyword">if</span> (!<span class="hljs-built_in">co_get_curr_thread_env</span>()) <br>    &#123;<br>        <span class="hljs-built_in">co_init_curr_thread_env</span>();<br>    &#125;<br>    stCoRoutine_t *co = <span class="hljs-built_in">co_create_env</span>(<span class="hljs-built_in">co_get_curr_thread_env</span>(), attr, pfn, arg);<br>    *ppco = co;<br>    <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li><code>ppco</code>：是协程的主体结构，存储着一个协程所有的信息；</li>
+<li><code>attr</code>：其实和线程一样，是我们希望创建的协程的一些属性，不过libco中这个参数简单一点，只是标记了栈的大小和是否使用共享栈，传入为NULL时表示不使用共享栈；</li>
+<li><code>pfn</code>：是我们希望协程执行的函数，当然实际执行的是一个封装后的函数；</li>
+<li><code>arg</code>：是传入函数的参数。</li>
+</ul>
+<p><strong><code>co_get_curr_thread_env</code></strong></p>
+<ul>
+<li>用于获取当前线程绑定的协程环境（这里暗含一个线程下的所有协程都是一起管理的，不会出现两个管理单元）。为了保证每个线程下运行时都能拿到指定的<code>stCoRoutineEnv_t</code>，是使用线程私有化实现的。</li>
+</ul>
+<p><strong><code>co_init_curr_thread_env</code></strong></p>
+<ul>
+<li>如果发现当前还没有设置过<code>stCoRoutineEnv_t</code>，则说明是第一次创建此线程下的协程，这个函数用于初始化线程的环境变量，即初始化<code>stCoRoutineEnv_t</code>这个结构，并且创建一个主协程，主协程是线程环境栈中的第一个协程，该协程不执行任何函数。</li>
+<li>会完成几个关键的任务：初始化<code>stCoRoutineEnv_t</code>；调用<code>co_create_env</code>创建主协程实体；并且将其放入协程调用栈中<code>env-&gt;pCallStack</code>；创建<code>epoll对象</code>（本质上<code>libco</code>还是为网络IO服务的，所以在设计上就是和<code>epoll</code>绑定的）</li>
+</ul>
+<p><strong><code>co_create_env</code></strong></p>
+<ul>
+<li>真正创建<code>stCoRoutine_t</code>对象的函数，主要是初始化对象并且分配私有栈或者公共栈</li>
+</ul>
+<h3 id="3-4-2-协程运行"><a href="#3-4-2-协程运行" class="headerlink" title="3.4.2 协程运行"></a>3.4.2 协程运行</h3><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">co_resume</span><span class="hljs-params">( stCoRoutine_t *co )</span></span><br><span class="hljs-function"></span>&#123;<br>    stCoRoutineEnv_t *env = co-&gt;env;<br> <br>    <span class="hljs-comment">/* 获取线程环境中的栈顶协程实体 */</span><br>    stCoRoutine_t *lpCurrRoutine = env-&gt;pCallStack[ env-&gt;iCallStackSize - <span class="hljs-number">1</span> ];<br>    <br>    <span class="hljs-keyword">if</span>( !co-&gt;cStart ) <span class="hljs-comment">// 如果协程没有执行过resume</span><br>    &#123;<br>        <span class="hljs-built_in">coctx_make</span>( &amp;co-&gt;ctx,(<span class="hljs-type">coctx_pfn_t</span>)CoRoutineFunc,co,<span class="hljs-number">0</span> );<br>        co-&gt;cStart = <span class="hljs-number">1</span>;<br>    &#125;<br>    env-&gt;pCallStack[ env-&gt;iCallStackSize++ ] = co; <span class="hljs-comment">// 把当前协程压入线程环境的栈中</span><br>    <span class="hljs-built_in">co_swap</span>( lpCurrRoutine, co ); <span class="hljs-comment">// 进行两个协程的上下文切换</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>大概流程就是从<code>env-&gt;pCallStack</code>调用栈中查找到当前协程，然后把要恢复运行的协程写入到调用栈中，最后调用<code>co_swap</code>完成协程的切换。（如果这个这个协程是第一次运行需要我们通过<code>coctx_make</code>创建上下文）</li>
+</ul>
+<p><strong><code>coctx_make</code></strong></p>
+<ul>
+<li>要理解初始化上下文函数的工作需要结合<code>coctx_swap</code>的工作原理，在<code>libco</code>中实现的协程切换是建立在模仿函数调用和返回上实现的，可以注意<code>coctx_swap</code>的最后一条指令是<code>ret</code>，所以为了在<code>coctx_swap</code>返回时跳转到目标函数位置，只需要提前将目标函数入口地址填到<code>sp</code>指向的位置即可。</li>
+<li>当然除了去设置跳转位置外，还需要设定好栈的位置以及入参等，所以这个函数的本质就是初始化<code>coctx_t</code>，后面调用<code>coctx_swap</code>时会将存储在<code>coctx_t</code>中的数据恢复到寄存器中。</li>
+</ul>
+<p><strong><code>coctx_swap</code></strong></p>
+<ul>
+<li>首先<code>coctx_swap</code>的定义是<code>void coctx_swap(coctx_t*, coctx_t*)</code>，两个入参会被放置<code>rdi</code>（第一个参数）和<code>rsi</code>（第二个参数）</li>
+<li>实际在调用的时候是<code>co_swap( lpCurrRoutine, co )</code>，即<code>rdi</code>存当前协程的<code>ctx</code>，<code>rsi</code>存将要切换到的协程的<code>ctx</code>。</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><code class="hljs assembly">coctx_swap:<br>    leaq (%rsp),%rax        ; 将栈指针 %rsp 中存储的地址加载到 %rax 中，注意是寄存器中值的copy<br>    movq %rax, 104(%rdi)    ; regs[13]: rsp<br>    movq %rbx, 96(%rdi)     ; regs[12]: rbx<br>    movq %rcx, 88(%rdi)     ; regs[11]: rcx<br>    movq %rdx, 80(%rdi)     ; regs[10]: rdx<br>    movq 0(%rax), %rax      ; 这一句就是将 %rsp 指向的内存中的返回地址取出并存储到 %rax 中<br>    movq %rax, 72(%rdi)     ; regs[9]: ret<br>    movq %rsi, 64(%rdi)     ; regs[8]: rsi<br>    movq %rdi, 56(%rdi)     ; regs[7]: rdi<br>    movq %rbp, 48(%rdi)     ; regs[6]: rbp<br>    movq %r8, 40(%rdi)      ; regs[5]: r8<br>    movq %r9, 32(%rdi)      ; regs[4]: r9<br>    movq %r12, 24(%rdi)     ; regs[3]: r12<br>    movq %r13, 16(%rdi)     ; regs[2]: r13<br>    movq %r14, 8(%rdi)      ; regs[1]: r14<br>    movq %r15, (%rdi)       ; regs[0]: r15<br>    xorq %rax, %rax         ; 清空 %rax<br><br>    movq 48(%rsi), %rbp     ; 后半部分其实就是将第二个参数coctx中缓存的数据重新加载到寄存器中<br>    movq 104(%rsi), %rsp<br>    movq (%rsi), %r15<br>    movq 8(%rsi), %r14<br>    movq 16(%rsi), %r13<br>    movq 24(%rsi), %r12<br>    movq 32(%rsi), %r9<br>    movq 40(%rsi), %r8<br>    movq 56(%rsi), %rdi<br>    movq 80(%rsi), %rdx<br>    movq 88(%rsi), %rcx<br>    movq 96(%rsi), %rbx<br>    leaq 8(%rsp), %rsp<br>    pushq 72(%rsi)<br><br>    movq 64(%rsi), %rsi<br>    ret<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li><p>注意<code>x86_64</code>架构的CPU其实是有很多寄存器的，但是这里其实只存储了一部分的寄存器值，这是和寄存器的使用规则有关系：如果寄存器遵循被调用者使用规则，那么被调用的函数内部如果需要使用这些寄存器就需要自己去缓存；如果寄存器遵循调用者使用规则，那么调用方要决定在调用前是否需要提前缓存这部分数据。</p>
+<ol>
+<li><code>%rax</code> 作为函数返回值使用。</li>
+<li><code>%rsp</code> 栈指针寄存器，指向栈顶</li>
+<li><code>%rbp</code> 栈桢指针，指向栈基</li>
+<li><code>%rdi，%rsi，%rdx，%rcx，%r8，%r9</code> 用作函数参数，依次对应第1参数，第2参数……</li>
+<li><code>%rbx，%r12，%r13，%14，%15</code> 用作数据存储，遵循<strong>被调用者使用规则</strong>，简单说就是随便用，调用子函数之前要备份它，以防他被修改</li>
+<li><code>%r10，%r11</code> 用作数据存储，遵循<strong>调用者使用规则</strong>，简单说就是使用之前要先保存原值</li>
+<li><code>%rip</code>: 相当于PC指针指向当前的指令地址，指向下一条要执行的指令</li>
+</ol>
+</li>
+<li><p>所有寄存器中<code>%rax, %r10, %r11</code>是永远不需要被调用函数内部做缓存的，如果需要缓存是在调用函数之前就缓存了；而其他的寄存器如果函数内需要使用，则函数内要自己缓存。</p>
+</li>
+</ul>
+<p><strong><code>co_swap</code></strong></p>
+<ul>
+<li>这个函数是<code>co_resume</code>中直接调用的函数，除了在内部调用<code>coctx_swap</code>之外还需要在切出之前和切回之后完成保存栈和恢复栈两个工作。</li>
+</ul>
+<h3 id="3-4-3-协程挂起"><a href="#3-4-3-协程挂起" class="headerlink" title="3.4.3 协程挂起"></a>3.4.3 协程挂起</h3><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">co_yield_env</span><span class="hljs-params">( stCoRoutineEnv_t *env )</span></span><br><span class="hljs-function"></span>&#123;<br>    <br>    stCoRoutine_t *last = env-&gt;pCallStack[ env-&gt;iCallStackSize - <span class="hljs-number">2</span> ];<br>    stCoRoutine_t *curr = env-&gt;pCallStack[ env-&gt;iCallStackSize - <span class="hljs-number">1</span> ];<br><br>    env-&gt;iCallStackSize--;<br><br>    <span class="hljs-built_in">co_swap</span>( curr, last);<br>&#125;<br><br><span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">co_yield_ct</span><span class="hljs-params">()</span></span><br><span class="hljs-function"></span>&#123;<br><br>    <span class="hljs-built_in">co_yield_env</span>( <span class="hljs-built_in">co_get_curr_thread_env</span>() );<br>&#125;<br><span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">co_yield</span><span class="hljs-params">( stCoRoutine_t *co )</span></span><br><span class="hljs-function"></span>&#123;<br>    <span class="hljs-built_in">co_yield_env</span>( co-&gt;env );<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>挂起当前协程，并切换到协程栈中的上一个协程，这里的上一个协程其实是恢复当前要挂起的这个协程的协程，每当执行<code>co_resume</code>这个函数的时候，是会将恢复的协程写入到这个协程栈中的。</li>
+<li>挂起操作会将当前协程从这个协程栈中<code>pop</code>出来。</li>
+<li>这里协程栈的操作涉及到了协程实现方案的问题，前面有提到<code>libco</code>实现的协程是非对称的，即有栈协程。协程之间的调用关系是需要协程栈保存下来的，也就意味着协程挂起进行切换的时候必须恢复到调用方；</li>
+<li>还有一种协程的实现是对称的，即无栈协程。那么所有协程之间是平等的，相互之间可以任意进行切换。</li>
+</ul>
+<h2 id="3-5-协程调度"><a href="#3-5-协程调度" class="headerlink" title="3.5 协程调度"></a>3.5 协程调度</h2><h3 id="3-5-1-协程间调度框架"><a href="#3-5-1-协程间调度框架" class="headerlink" title="3.5.1 协程间调度框架"></a>3.5.1 协程间调度框架</h3><ul>
+<li>协程是构建在用户态的一种机制，所有协程的恢复运行和挂起操作都是需要显示在代码中调用相关函数才能实现的，这一点相较于线程是有很大不同的，同时一个协程如果一直不让出CPU，也不会有时间片机制让别的协程有机会开始执行。</li>
+<li>因此在代码中是需要存在一个调度器来在合适的时候让指定的协程恢复运行的，也就是根据事件触发对应协程的恢复运行，这就是<code>libco</code>这个协程框架的基本调度思路了。</li>
+<li>题外话：因为协程的设计本来就是为了解决网络编程中的问题，所以<code>libco</code>的核心是围绕多路复用<code>epoll</code>以及网络套接字<code>socket</code>来实现的。<code>libco</code>实现了对相关的网络编程接口的<code>hook</code>，在<code>hook</code>函数中添加<code>co_yield</code>以及一些封装，比如将<code>epoll</code>封装成<code>poll</code>来对外提供服务，等等。</li>
+<li><code>libco</code>总共支持三种事件：网络事件、超时事件、同步事件。调用<code>libco</code>为我们提供的特定接口并需要进入等待时会自动注册这些事件，然后将当前协程挂起并等待主协程处理事件以及调度。主协程调度功能是由<code>co_eventloop</code>函数支持的。</li>
+</ul>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">co_eventloop</span><span class="hljs-params">( stCoEpoll_t *ctx,<span class="hljs-type">pfn_co_eventloop_t</span> pfn,<span class="hljs-type">void</span> *arg )</span></span><br><span class="hljs-function"></span>&#123;<br>    <span class="hljs-keyword">for</span>(;;)<br>    &#123;<br>        <span class="hljs-type">int</span> ret = <span class="hljs-built_in">co_epoll_wait</span>( ctx-&gt;iEpollFd,result,stCoEpoll_t::_EPOLL_SIZE, <span class="hljs-number">1</span> );<br><br>        <span class="hljs-keyword">for</span>(<span class="hljs-type">int</span> i=<span class="hljs-number">0</span>;i&lt;ret;i++)<br>        &#123;<br>            item-&gt;<span class="hljs-built_in">pfnPrepare</span>( item,result-&gt;events[i],active );<br>        &#125;<br><br>        <span class="hljs-built_in">TakeAllTimeout</span>( ctx-&gt;pTimeout,now,timeout );<br><br>        <span class="hljs-built_in">Join</span>&lt;stTimeoutItem_t,stTimeoutItemLink_t&gt;( active,timeout );<br><br>        lp = active-&gt;head;<br>        <span class="hljs-keyword">while</span>( lp )<br>        &#123;<br>            lp-&gt;<span class="hljs-built_in">pfnProcess</span>( lp );<br>            lp = active-&gt;head;<br>        &#125;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>这里只保留了核心逻辑代码，首先<code>co_eventloop</code>函数是一个无限循环，不断等待新的事件到达，然后根据到达的事件恢复运行对应的协程。<ul>
+<li>第一步是调用<code>co_epoll_wait</code>获取满足条件的网络事件，其实内部就是调用<code>epoll_wait</code>获取指定事件已经到达的<code>socket fd</code>。注意这里设置的超时时间是<code>1 ms</code>，这是利用超时机制实现超时事件的触发。</li>
+<li>第二步是对已经准备好的<code>socket fd</code>调用提前设定的<code>pfnPrepare</code>函数，这个和一些统计工作有关系，不是核心逻辑。</li>
+<li>第三步是通过<code>TakeAllTimeout</code>获得已经超时的事件，这里就是简单对比时间完成的。</li>
+<li>第四步会将超时事件和网络事件两个链表合并，然后依次执行提前注册的回调函数<code>pfnProcess</code>，其实回调函数很简答，就是恢复事件绑定的协程，即内部调用<code>co_resume</code>。</li>
+</ul>
+</li>
+<li>以上就是主要逻辑了，会发现缺失了同步事件的处理，这和同步事件的实现有关系。因为条件变量的触发需要另外一个协程在执行流程中调用<code>co_cond_signal</code>完成。这里会完成将该事件激活并放到<code>pstActiveList</code>中。那么下一次<code>co_eventloop</code>的循环就会一并将该事件处理。</li>
+<li>分析源码后我们便清楚了，<code>libco</code>的调度就是建立在<code>epoll</code>之上的，基于事件的一个模型。因此我们使用<code>libco</code>框架写协程代码的时候是必须在主协程（也就是原线程执行流程）的最后调用<code>co_eventloop</code>函数的。在此之前应该把协程创建好并且先运行一些，否则一个刚创建的协程没有等待任何事件，永远不会被调度到。当然一个协程内部也是可以再创建新的协程的，但也是同样的道理，创建完之后要先运行。</li>
+</ul>
+<h3 id="3-5-2-Timeout事件"><a href="#3-5-2-Timeout事件" class="headerlink" title="3.5.2 Timeout事件"></a>3.5.2 <code>Timeout</code>事件</h3><ul>
+<li><code>co_eventloop</code>的第一个参数是<code>stCoEpoll_t</code>，这就是辅助调度的结构体，所以只有一份。其内部的<code>stTimeout_t</code>存储了所有超时等待事件，是用来查询超时事件的结构。</li>
+</ul>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-keyword">struct</span> <span class="hljs-title class_">stCoEpoll_t</span><br>&#123;<br>    <span class="hljs-type">int</span> iEpollFd;<br>    <span class="hljs-type">static</span> <span class="hljs-type">const</span> <span class="hljs-type">int</span> _EPOLL_SIZE = <span class="hljs-number">1024</span> * <span class="hljs-number">10</span>;<br><br>    <span class="hljs-keyword">struct</span> <span class="hljs-title class_">stTimeout_t</span> *pTimeout;<br><br>    <span class="hljs-keyword">struct</span> <span class="hljs-title class_">stTimeoutItemLink_t</span> *pstTimeoutList;<br><br>    <span class="hljs-keyword">struct</span> <span class="hljs-title class_">stTimeoutItemLink_t</span> *pstActiveList;<br><br>    co_epoll_res *result; <br><br>&#125;;<br><br><span class="hljs-keyword">struct</span> <span class="hljs-title class_">stTimeoutItemLink_t</span><br>&#123;<br>    stTimeoutItem_t *head;<br>    stTimeoutItem_t *tail;<br>&#125;;<br><br><span class="hljs-keyword">struct</span> <span class="hljs-title class_">stTimeout_t</span><br>&#123;<br>    stTimeoutItemLink_t *pItems;	<span class="hljs-comment">// 链表头的数组（有多个链表，然后以数组形式存储了所有的链表头）</span><br>    <span class="hljs-type">int</span> iItemSize;								<span class="hljs-comment">// 数组大小</span><br><br>    <span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> <span class="hljs-type">long</span> ullStart;	<span class="hljs-comment">// 记录时间</span><br>    <span class="hljs-type">long</span> <span class="hljs-type">long</span> llStartIdx;					<span class="hljs-comment">// 记录时间所对应的数组中的位置</span><br>&#125;;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>具体存储超时事件的结构体是<code>stTimeoutItem_t</code>，这是一个双向链表的节点，较为关键的是<code>void *pArg</code>，以及两个回调函数。前者其实<code>stCoRoutine_t*</code>，我们要在回调函数中恢复对应协程运行需要从这里拿到协程。</li>
+<li>回调函数是核心，当<code>co_eventloop</code>拿到已触发的事件了后续该做的事（一般就是恢复对应协程运行）都定义在回调函数中。</li>
+</ul>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-keyword">struct</span> <span class="hljs-title class_">stTimeoutItem_t</span><br>&#123;<br><br>    <span class="hljs-keyword">enum</span><br>    &#123;<br>        eMaxTimeout = <span class="hljs-number">40</span> * <span class="hljs-number">1000</span> <span class="hljs-comment">//40s</span><br>    &#125;;<br>    stTimeoutItem_t *pPrev;<br>    stTimeoutItem_t *pNext;<br>    stTimeoutItemLink_t *pLink;<br><br>    <span class="hljs-type">unsigned</span> <span class="hljs-type">long</span> <span class="hljs-type">long</span> ullExpireTime;<br><br>    OnPreparePfn_t pfnPrepare;	<span class="hljs-comment">// 预处理回调函数，在epoll_loop中被调用，只有epoll_wait触发的事件会调用这个回调函数，超时和同步事件都不会调用</span><br>    OnProcessPfn_t pfnProcess;	<span class="hljs-comment">// 正式的回调函数，在epoll_loop中被调用</span><br><br>    <span class="hljs-type">void</span> *pArg; <span class="hljs-comment">// routine 指向协程实体</span><br>    <span class="hljs-type">bool</span> bTimeout;<br>&#125;;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>提一下<code>TakeAllTimeout</code>函数，其实就是更新<code>stTimeout_t</code>中的时间记录，然后把已经超时的<code>stTimeoutItem_t</code>取出来。另外将其添加到<code>pstTimeoutList</code>中，等待后面统一处理。</li>
+<li>还有注册超时事件的<code>AddTimeout</code>函数，就是把<code>stTimeoutItem_t</code>添加到 到期时间 对应的链表中。</li>
+</ul>
+<h3 id="3-5-3-Poll事件"><a href="#3-5-3-Poll事件" class="headerlink" title="3.5.3 Poll事件"></a>3.5.3 <code>Poll</code>事件</h3><ul>
+<li><code>libco</code>对网络编程需要用到的接口都做了相应的<code>hook</code>，关键接口主要有三类：<code>read, write, poll</code>，读写都是对一个<code>socket fd</code>的操作，所以一个事件对应一个协程，用<code>stPollItem_t</code>表示：</li>
+</ul>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-keyword">struct</span> <span class="hljs-title class_">stPollItem_t</span> : <span class="hljs-keyword">public</span> stTimeoutItem_t<br>&#123;<br>    <span class="hljs-keyword">struct</span> <span class="hljs-title class_">pollfd</span> *pSelf;<br>    stPoll_t *pPoll;<br><br>    <span class="hljs-keyword">struct</span> <span class="hljs-title class_">epoll_event</span> stEvent;<br>&#125;;<br><br><span class="hljs-keyword">struct</span> <span class="hljs-title class_">stPoll_t</span> : <span class="hljs-keyword">public</span> stTimeoutItem_t <br>&#123;<br>    <span class="hljs-keyword">struct</span> <span class="hljs-title class_">pollfd</span> *fds;<br>    <span class="hljs-type">nfds_t</span> nfds; <span class="hljs-comment">// typedef unsigned long int nfds_t;</span><br>    stPollItem_t *pPollItems;<br>    <span class="hljs-type">int</span> iAllEventDetach;<br>    <span class="hljs-type">int</span> iEpollFd;<br>    <span class="hljs-type">int</span> iRaiseCnt;<br>&#125;;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>因为网络事件往往是存在超时时间的，网络事件一般是丢到<code>epoll</code>中内核自己维护，但是超时机制需要我们自己来管理。所以网络事件必须同时也是超时事件，被丢到<code>stTimeout_t</code>中管理。所以<code>stPollItem_t</code>是继承实现的，一些别的变量是处理<code>poll</code>到<code>epoll</code>转换的。（小纠正：其实<code>stPollItem_t</code>是不会被当作超时任务丢到<code>stTimeout_t</code>中的，真正丢进去的是<code>stPoll_t</code>，但这里依然选择继承的原因是能用上回调函数等变量）</li>
+<li>还存在一种接口是对<code>poll</code>的处理，这个接口是需要同时等待多个网络事件，但是这多个网络事件和在一起等待一个超时事件。所以用了<code>stPoll_t</code>存储这一组<code>stPollItem_t</code>（数组<code>pPollItems[nfds]</code>），同时本身又继承<code>stTimeoutItem_t</code>，于是可以被当作是一个超时事件丢到<code>stTimeout_t</code>中管理。</li>
+<li><code>poll</code>还有一个特点是，当任意一个事件触发之后，同一批等待的所有事件都应该退出，这一点和<code>epoll</code>的实现是不同的。而<code>stPollItem_t</code>中注册的<code>pfnPrepare</code>预处理函数就是解决这个问题的，当一个<code>stPollItem_t</code>事件到达之后，需要将注册的<code>stPoll_t</code>超时任务删除。</li>
+<li>关于网络事件的注册，<code>libco</code>库的实现方案是统一使用<code>hook</code>后的<code>poll</code>函数完成注册。这样可以尽量做到用户代码的无侵入性。所有读写接口的<code>hook</code>内部也是先调用<code>poll</code>等到事件到达之后开始真正执行。</li>
+</ul>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">co_poll_inner</span><span class="hljs-params">( stCoEpoll_t *ctx,<span class="hljs-keyword">struct</span> pollfd fds[], <span class="hljs-type">nfds_t</span> nfds, <span class="hljs-type">int</span> timeout, <span class="hljs-type">poll_pfn_t</span> pollfunc)</span></span><br><span class="hljs-function"></span>&#123;<br>    <span class="hljs-comment">//1.struct change</span><br>    stPoll_t&amp; arg = *((stPoll_t*)<span class="hljs-built_in">malloc</span>(<span class="hljs-built_in">sizeof</span>(stPoll_t)));<br>    <br>    <span class="hljs-comment">//2. add epoll</span><br>    <span class="hljs-keyword">for</span>(<span class="hljs-type">nfds_t</span> i=<span class="hljs-number">0</span>;i&lt;nfds;i++)<br>    &#123;<br>        <span class="hljs-type">int</span> ret = <span class="hljs-built_in">co_epoll_ctl</span>( epfd,EPOLL_CTL_ADD, fds[i].fd, &amp;ev );<br>    &#125;<br><br>    <span class="hljs-comment">//3.add timeout</span><br>    <span class="hljs-type">int</span> ret = <span class="hljs-built_in">AddTimeout</span>( ctx-&gt;pTimeout,&amp;arg,now );<br>    <span class="hljs-type">int</span> iRaiseCnt = <span class="hljs-number">0</span>;<br>    <br>    <span class="hljs-built_in">co_yield_env</span>( <span class="hljs-built_in">co_get_curr_thread_env</span>() );<br><br>    <span class="hljs-comment">//4.clear epoll status and memory</span><br>    <span class="hljs-keyword">for</span>(<span class="hljs-type">nfds_t</span> i = <span class="hljs-number">0</span>;i &lt; nfds;i++)<br>    &#123;<br>        <span class="hljs-type">int</span> fd = fds[i].fd;<br>        <span class="hljs-built_in">co_epoll_ctl</span>( epfd,EPOLL_CTL_DEL,fd,&amp;arg.pPollItems[i].stEvent );<br>    &#125;<br>    <span class="hljs-keyword">return</span> iRaiseCnt;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li><code>poll</code>函数内部核心是<code>co_poll_inner</code>，其完成三个主要步骤：<ul>
+<li>首先创建<code>stPoll_t</code>对象，并填充对应参数；</li>
+<li>然后把入参的<code>fds</code>依次添加到<code>epoll</code>中；</li>
+<li>接着根据超时时间，将<code>stPoll_t</code>添加到超时事件中，并让出CPU等待事件触发之后回来；</li>
+<li>最后在等到事件到达恢复运行之后，需要将这些<code>fds</code>从<code>epoll</code>中删除，本质上是为了契合<code>poll</code>接口的定义。</li>
+</ul>
+</li>
+</ul>
+<h3 id="3-5-4-Cond事件"><a href="#3-5-4-Cond事件" class="headerlink" title="3.5.4 Cond事件"></a>3.5.4 <code>Cond</code>事件</h3><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-keyword">struct</span> <span class="hljs-title class_">stCoCondItem_t</span> <br>&#123;<br>    stCoCondItem_t *pPrev;<br>    stCoCondItem_t *pNext;<br>    stCoCond_t *pLink;<br><br>    stTimeoutItem_t timeout;<br>&#125;;<br><br><span class="hljs-keyword">struct</span> <span class="hljs-title class_">stCoCond_t</span><br>&#123;<br>    stCoCondItem_t *head;<br>    stCoCondItem_t *tail;<br>&#125;;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>其实实现很简单，对同一个条件变量<code>stCoCond_t</code>的等待<code>co_cond_timedwait</code>会创建一个<code>stCoCondItem_t</code>并插入到等待链表中。可以注意到这里<code>stTimeoutItem_t</code>是作为成员变量出现的，而不是和之前的<code>stPollItem_t</code>保持一致采用继承的方法。显然同步事件是后来添加的新功能😆</li>
+<li><code>co_cond_signal</code>或者<code>co_cond_broadcast</code>触发等待条件变量的协程，就是把<code>stTimeoutItem_t</code>取出来，并添加到<code>pstActiveList</code>当中，注意这里是用的尾插法<code>AddTail</code>，所以在本轮<code>co_eventloop</code>调度中是可以被调度运行到的。（但我不明白为啥不就地恢复运行，而一定要让<code>co_eventloop</code>去调度。或许是有公平性问题，先来的事件应该先运行？）</li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/lluvialuo/categories/%E6%8F%92%E4%BB%B6/" class="category-chain-item">插件</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/lluvialuo/tags/%E5%8D%8F%E7%A8%8B/" class="print-no-link">#协程</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>协程库</div>
+      <div>https://github.com/lluvialuo/2024/05/12/协程库/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>Lluvia Luo</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2024年5月12日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/lluvialuo/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/" title="Linux:高速缓存">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">Linux:高速缓存</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/lluvialuo/2024/05/12/RocksDB-%E4%BA%8B%E5%8A%A1%E7%AE%A1%E7%90%86/" title="RocksDB:事务管理">
+                        <span class="hidden-mobile">RocksDB:事务管理</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+  
+  
+
+
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/lluvialuo/js/events.js" ></script>
+<script  src="/lluvialuo/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/lluvialuo/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  
+      <script>
+        if (!window.MathJax) {
+          window.MathJax = {
+            tex    : {
+              inlineMath: { '[+]': [['$', '$']] }
+            },
+            loader : {
+              load: ['ui/lazy']
+            },
+            options: {
+              renderActions: {
+                insertedScript: [200, () => {
+                  document.querySelectorAll('mjx-container').forEach(node => {
+                    let target = node.parentNode;
+                    if (target.nodeName.toLowerCase() === 'li') {
+                      target.parentNode.classList.add('has-jax');
+                    }
+                  });
+                }, '', false]
+              }
+            }
+          };
+        } else {
+          MathJax.startup.document.state(0);
+          MathJax.texReset();
+          MathJax.typeset();
+          MathJax.typesetPromise();
+        }
+
+        Fluid.events.registerRefreshCallback(function() {
+          if ('MathJax' in window && MathJax.startup.document && typeof MathJax.startup.document.state === 'function') {
+            MathJax.startup.document.state(0);
+            MathJax.texReset();
+            MathJax.typeset();
+            MathJax.typesetPromise();
+          }
+        });
+      </script>
+    
+
+  <script  src="https://lib.baomitu.com/mathjax/3.2.2/es5/tex-mml-chtml.js" ></script>
+
+  <script  src="/lluvialuo/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/lluvialuo/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

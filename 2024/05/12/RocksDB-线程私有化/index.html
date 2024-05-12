@@ -1,0 +1,780 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/lluvialuo/img/%E5%A4%B4%E5%83%8F.jpeg">
+  <link rel="icon" href="/lluvialuo/img/%E5%A4%B4%E5%83%8F.jpeg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Lluvia Luo">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="在RocksDB的PointLockManager中有使用到，是系统层面的优化点  一、线程资源 这一小节是实现各种系统设计中通过线程私有化实现性能优化的基础 是由编译器和标准库提供的线程资源的支持，有线程特定数据（Thread Specific Data）和线程局部存储 (Thread Local Storage)两种  1.1 TLS1static int thread_local var_">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RocksDB:线程私有化">
+<meta property="og:url" content="https://github.com/lluvialuo/2024/05/12/RocksDB-%E7%BA%BF%E7%A8%8B%E7%A7%81%E6%9C%89%E5%8C%96/index.html">
+<meta property="og:site_name" content="Lluvia&#39;s blog">
+<meta property="og:description" content="在RocksDB的PointLockManager中有使用到，是系统层面的优化点  一、线程资源 这一小节是实现各种系统设计中通过线程私有化实现性能优化的基础 是由编译器和标准库提供的线程资源的支持，有线程特定数据（Thread Specific Data）和线程局部存储 (Thread Local Storage)两种  1.1 TLS1static int thread_local var_">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-05-12T06:24:31.000Z">
+<meta property="article:modified_time" content="2024-05-12T06:47:35.485Z">
+<meta property="article:author" content="Lluvia Luo">
+<meta property="article:tag" content="RocksDB">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>RocksDB:线程私有化 - Lluvia&#39;s blog</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/lluvialuo/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/lluvialuo/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/lluvialuo/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"github.com","root":"/lluvialuo/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/lluvialuo/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/lluvialuo/js/utils.js" ></script>
+  <script  src="/lluvialuo/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.2.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/lluvialuo/">
+      <strong>Lluvia</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/lluvialuo/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/lluvialuo/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/lluvialuo/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/lluvialuo/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/lluvialuo/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/lluvialuo/img/mainpage.jpg') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="RocksDB:线程私有化"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2024-05-12 14:24" pubdate>
+          2024年5月12日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.7k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          23 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">RocksDB:线程私有化</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <ul>
+<li>在RocksDB的<code>PointLockManager</code>中有使用到，是系统层面的优化点</li>
+</ul>
+<h1 id="一、线程资源"><a href="#一、线程资源" class="headerlink" title="一、线程资源"></a>一、线程资源</h1><ul>
+<li>这一小节是实现各种系统设计中通过线程私有化实现性能优化的基础</li>
+<li>是由编译器和标准库提供的线程资源的支持，有线程特定数据（Thread Specific Data）和线程局部存储 (Thread Local Storage)两种</li>
+</ul>
+<h2 id="1-1-TLS"><a href="#1-1-TLS" class="headerlink" title="1.1 TLS"></a>1.1 TLS</h2><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs C++"><span class="hljs-type">static</span> <span class="hljs-type">int</span> <span class="hljs-keyword">thread_local</span> var_1 = <span class="hljs-number">0</span>;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>通过<code>thread_local</code>标识符修饰的全局或静态变量是线程独立的，线程对该变量的操作对其它线程来说是不可见的</li>
+</ul>
+<h3 id="线程栈"><a href="#线程栈" class="headerlink" title="线程栈"></a>线程栈</h3><ul>
+<li>在Linux中，并没有真正的线程，而是通过多个进程共享资源的方式实现的。但每个线程自己的线程栈是私有的，通过分配的方式将进程的某一块内存分配给线程使用</li>
+<li>拿到分配的栈空间之后，先将最前面的一段空间初始化为<code>pthread</code>对象，然后就是<code>__thread</code>变量区。代码中所有的 <code>__thread</code>变量是与<code>pthread</code>关联存储的，通过相对于<code>pthread</code>变量地址的偏移实现对变量的寻址</li>
+</ul>
+<h2 id="1-2-TSD"><a href="#1-2-TSD" class="headerlink" title="1.2 TSD"></a>1.2 TSD</h2><ul>
+<li>通过<code>pthread_key_create</code>创建键值映射，每个线程通过键访问线程特定的数据</li>
+</ul>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-comment">// 首先声明一个全局的Key</span><br><span class="hljs-type">static</span> <span class="hljs-type">pthread_key_t</span> heap_key_;<br><span class="hljs-comment">// 并且通过接口完成初始化，定义一个序号值（seq）及一个用于释放数据的“析构函数” （destr）</span><br><span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">pthread_key_create</span> <span class="hljs-params">(<span class="hljs-type">pthread_key_t</span> *key, <span class="hljs-type">void</span> (*destructor)(<span class="hljs-type">void</span> *))</span></span>;<br><span class="hljs-comment">// 线程内通过接口设置某个key对应的值</span><br><span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">pthread_setspecific</span> <span class="hljs-params">(<span class="hljs-type">pthread_key_t</span> key, <span class="hljs-type">const</span> <span class="hljs-type">void</span> *value)</span></span>;<br><span class="hljs-comment">// 线程内通过接口获取某个key对应的值</span><br><span class="hljs-function"><span class="hljs-type">void</span> *<span class="hljs-title">pthread_getspecific</span> <span class="hljs-params">(<span class="hljs-type">pthread_key_t</span> key)</span></span>;<br><br><span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">pthread_key_delete</span> <span class="hljs-params">(<span class="hljs-type">pthread_key_t</span> key)</span></span>;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>通过TSD可以在每个线程内访问自己私有的变量，同时这些变量在不同的线程中是具有相同的变量名的，即我们在全局声明的<code>pthread_key_t</code>变量</li>
+</ul>
+<h1 id="二、TCMalloc"><a href="#二、TCMalloc" class="headerlink" title="二、TCMalloc"></a>二、TCMalloc</h1><ul>
+<li><code>Golang</code>在设计时借鉴了<code>TCMalloc</code>（线程缓存分配）的设计，实现高速的内存分配</li>
+<li>它的核心理念是使用多级缓存将对象根据大小分类，并按照类别实施不同的分配策略</li>
+</ul>
+<h2 id="2-1-隐式链表分配"><a href="#2-1-隐式链表分配" class="headerlink" title="2.1 隐式链表分配"></a>2.1 隐式链表分配</h2><ul>
+<li>如果要对一整个<code>Page</code>的内存按照相同的单位进行分配，有非常的方法实现，比如可以使用<code>bitmap</code>的方式，如果对4KB的页按照16byte进行分配，只需要4KB &#x2F; 16 &#x2F; 8 &#x3D; 32byte的<code>bitmap</code></li>
+<li>但是出于最大化内存利用率的目的，使用的是另一种经典的方式<code>freelist</code>。因为我们要分配的对象就是内存本身，在构成链表时可以将链表指针放到对象中进行存储，从而不需要额外的内存来存储管理信息了</li>
+</ul>
+<h2 id="2-2-内存对齐的规则"><a href="#2-2-内存对齐的规则" class="headerlink" title="2.2 内存对齐的规则"></a>2.2 内存对齐的规则</h2><ul>
+<li>首先说明，TCMalloc的代码似乎存在多种宏定义可以改变内存的对齐规则，所有下面写的数据不一定是完全不变的</li>
+<li>一共划分了四个档位：<code>(256KB, +∞)</code>按照8KB进行对齐；<code>[128B, 256KB]</code>按照$(1&lt;&lt;LgFloor(size))&#x2F;8$来对齐，$LgFloor$其实就是取size二进制最高位1的位置；<code>(16B, 128B)</code>按照16B进行对其；<code>(0, 16B)</code>按照8B进行对其。</li>
+<li>通过这样设定的对齐方式，对于分配内存小于等于256KB的情况，我们可以将所有的内存size划分穷举出来，被设计成数组方便我们可以直接访问到对应的规则下</li>
+</ul>
+<h2 id="2-3-整体框架"><a href="#2-3-整体框架" class="headerlink" title="2.3 整体框架"></a>2.3 整体框架</h2><ul>
+<li>TCMalloc的整体分配框架分成了<code>Thread Cache</code>, <code>Central List</code>, <code>Page Heap</code>三级</li>
+<li>用户直接向每个线程私有的<code>Thread Cache</code>获取内存块，其基本结构是一个包含所有内存分配单位的数组，每个单元包含这个单位大小的空闲数据块链表，从这里分配内存可以避免多线程的竞争</li>
+<li>如果线程私有的空闲块没有了，需要向全局的<code>Central List</code>申请，每个可能的单位分配大小都有一个<code>Central List</code>实例。每个实例内部是<code>SpanList</code>，存储着用于划分小内存块的<code>span</code>，每个<code>span</code>包含的<code>page</code>数量是不同的，但是同一个<code>Central List</code>下的<code>span</code> size肯定相同</li>
+<li>如果还是没有足够的空间，需要向 <code>Page Heap</code>申请内存块了，内部是一个128长度的数组，用于表示size为1～128个<code>page</code>的<code>span</code>。用多种定长<code>page</code>来实现变长<code>page</code>的分配，初始时只有 128 <code>page</code> 的 <code>span</code>，如果要分配 1 个 <code>page</code> 的 <code>span</code>，就把这个 <code>span</code> 分裂成两个，1 + 127，把127再记录下来。对于 <code>span</code> 的回收，需要考虑<code>span</code>的合并问题，否则在分配回收多次之后，就只剩下很小的 <code>span</code> 了，也就是带来了<strong>外部碎片</strong>问题。</li>
+</ul>
+<h2 id="2-4-分配策略"><a href="#2-4-分配策略" class="headerlink" title="2.4 分配策略"></a>2.4 分配策略</h2><ul>
+<li>每次分配时，从用户申请的对象的size开始，一路发生空间不够向上请求新空间，到最后真正向操作系统申请的内存size是由一些提前设定好的参数决定的</li>
+<li>首先，用户申请的内存size会被进行对齐处理，这里是通过前面说的方法进行对齐的，但是我们还应该得出这是哪一个内存size下的，及得到<code>Index</code>，这是通过<code>ClassIndex(size)</code>实现的</li>
+<li>然后，通过<code>Index</code>访问<code>class_to_size_</code>得到实际该给用户返回多大的内存</li>
+<li>接着，通过<code>Index</code>访问<code>num_objects_to_move_</code>查每次给对应<code>thread_cache</code>分配多少个object，这里有预先多给一部分同样大小的内存块给线程的意思</li>
+<li>最后，通过<code>Index</code>访问<code>class_to_pages_</code>查每次给不同<code>central_freelist</code>分包含多少个页的<code>span</code></li>
+<li>超过256KB的大内存的分配会绕过其他结构直接访问<code>Page Heap</code>，并且单独管理</li>
+</ul>
+<h2 id="2-5-线程私有"><a href="#2-5-线程私有" class="headerlink" title="2.5 线程私有"></a>2.5 线程私有</h2><ul>
+<li>在<code>TCMalloc</code>的三层结构中，<code>Thread Cache</code>这一层为了避免多线程的竞争从而带来的性能影响，选择了使用线程私有的方式实现</li>
+<li>代码中使用了TSD的方式，为每个线程在需要通过<code>TCMalloc</code>申请内存时，构建一个线程私有的<code>Thread Cache</code>，实现内存分配上的线程私有话，避免了线程之间的竞争</li>
+<li>但是因为TSD方式对局部变量的访问需要通过<code>pthread_getspecific()</code>，速度比较慢，因此<code>Thread Cache</code>中还有<code>__thread</code>变量存储每个线程对象的副本</li>
+<li>但是因为需要注册清理函数，所以必须要TSD的方式创建线程局部变量</li>
+</ul>
+<h1 id="三、ThreadLocalPtr"><a href="#三、ThreadLocalPtr" class="headerlink" title="三、ThreadLocalPtr"></a>三、ThreadLocalPtr</h1><ul>
+<li>RocksDB对线程私有存储的封装</li>
+<li>实现线程私有的方法也非常简单，就是使用<code>pthread_key_t</code>，但是这样的实现方式较为原生，对于每一个需要私有化的变量都需要我们声明并创建。并且当我们不能事先知道需要多少私有变量个数时，会更加不方便</li>
+<li>可以在全局就用一个<code>pthread_key_t</code>，这样所有线程都能知道它并通过它来访问自己的私有存储，然后在这个私有存储上做文章，让它支持维护多个变量就可以了</li>
+</ul>
+<h2 id="3-1-使用方法"><a href="#3-1-使用方法" class="headerlink" title="3.1 使用方法"></a>3.1 使用方法</h2><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-comment">// 1.首先定义线程退出时的回掉函数，用于释放存储的局部对象</span><br><span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">UnrefHandle</span><span class="hljs-params">(<span class="hljs-type">void</span> *ptr)</span> </span>&#123;<br>  <span class="hljs-comment">//当线程退出的时候会回调UnrefHandle来释放该线程的私有存储，ptr指向该私有存储地址</span><br>  <span class="hljs-comment">//所以这里需要定义这块私有存储该如何释放，比如最简单的:</span><br>  <span class="hljs-keyword">delete</span> <span class="hljs-built_in">static_cast</span>&lt;Object&gt;(ptr);<br>&#125;<br><br><span class="hljs-comment">// 2.创建一个私有的存储变量，对应着pthread_key_create</span><br>ThreadLocalPtr *local_1 = <span class="hljs-keyword">new</span> <span class="hljs-built_in">ThreadLocalPtr</span>(&amp;UnrefHandle);<br><br><span class="hljs-comment">// 3.设置本线程对应的该私有存储变量的值，对应pthread_setspecific</span><br>Object *ptr_1 = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Object</span>();<br><span class="hljs-type">void</span> *old_ptr_1 = local_1-&gt;<span class="hljs-built_in">Swap</span>(ptr_1);<br><span class="hljs-comment">// 或者使用reset，其实和swap是一样的，差别在是否返回原来位置上的值</span><br>local_1-&gt;<span class="hljs-built_in">Reset</span>(ptr_1);<br><br><span class="hljs-comment">// 4.读取本线程对应的私有存储变量的值，对应pthread_getspecific</span><br><span class="hljs-type">void</span> *cur_ptr_1 = local_l-&gt;<span class="hljs-built_in">Get</span>();<br></code></pre></td></tr></table></figure>
+
+<h2 id="3-2-实现过程"><a href="#3-2-实现过程" class="headerlink" title="3.2 实现过程"></a>3.2 实现过程</h2><ul>
+<li><p>首先所有真正被存放在<code>ThreadLocalPtr</code>中的都是指针，而不是数据本身，并且都是被转换成<code>void*</code>类型被包装在<code>Entry</code>对象中的，不用的线程只要能够获取到不同的指针就能访问到私有的内存了</p>
+</li>
+<li><p>然后是<code>ThreadData</code>包含<code>std::vector&lt;Entry&gt;</code>，这里其实存放了用户的多个私有内存的指针，因此只要我们能够实现每个线程都单独具有一个<code>ThreadData</code>对象，然后将每个线程需要私有化的内容放到<code>ThreadData</code>的数组中就可以了</p>
+</li>
+<li><p>接着是最重要的<code>StaticMeta</code>，其在整个程序中只存在一份，是单例模式。其内部包含了<code>static thread_local ThreadData* tls_;</code>和<code>pthread_key_t pthread_key_;</code>两个变量，都是存储的<code>ThreadData</code>指针，其中TLS方式是为了加速访问存储的副本</p>
+</li>
+<li><p>最后<code>ThreadLocalPtr</code>对象只存储了一个<code>ID</code>值，这是用于访问在<code>ThreadData</code>中保存的私有变量时，用于索引<code>std::vector&lt;Entry&gt;</code>的，其实就是通过下标的方式标明是哪一个变量。因为数组的长度不能无限的增长，因此<code>ID</code>其实是会进行回收使用的</p>
+</li>
+<li><p>关于对象的释放操作，目前存在两个维度的对象释放：</p>
+<ol>
+<li>当某个线程结束之后，其下管理的所有私有对象都应该被释放。这是由注册线程私有<code>ThreadData</code>时，通过<code>pthread_key_create</code>传入的回掉函数<code>OnThreadExit</code>完成。线程退出时自动调用回掉函数，会遍历<code>ThreadData</code>中的数组，并对每一个变量调用它的释放函数</li>
+<li>当我们主动删除某一个线程私有变量时（也就是删除某个<code>ThreadLocalPtr</code>对象），我们需要将所有线程下的该私有对象都进行释放处理。这里是通过<code>ThreadData</code>自己构成的双向链表，找出所有线程下的变量进行释放</li>
+</ol>
+</li>
+</ul>
+<h1 id="四、线程私有优化案例"><a href="#四、线程私有优化案例" class="headerlink" title="四、线程私有优化案例"></a>四、线程私有优化案例</h1><h2 id="4-1-PointLockManager优化"><a href="#4-1-PointLockManager优化" class="headerlink" title="4.1 PointLockManager优化"></a>4.1 PointLockManager优化</h2><ul>
+<li><p>在RocksDB的点锁实现<code>PointLockManager</code>中，不同<code>ColumnFamily</code>拥有不同的<code>LockMap</code>，而所有的<code>LockMap</code>是被集中存储在一个<code>LockMaps</code>下的</p>
+</li>
+<li><p>因此当我们需要对某个<code>ColumnFamily</code>下的Key加锁时，需要先将整个<code>PointLockManager</code>锁起来，然后从<code>LockMaps</code>中取出对应<code>ColumnFamily</code>的<code>LockMap</code>，然后再执行后续的操作</p>
+</li>
+<li><p>这里为了获得<code>ColumnFamily</code>对应的<code>LockMap</code>需要对整个<code>PointLockManager</code>对象进行加锁显然会造成较大的竞争。因此这里采用了线程优化的方式，在每个线程中都准备了一个<code>LockMaps</code>，并且把当前线程需要用到的<code>ColumnFamily</code>的<code>LockMap</code>放入其中</p>
+</li>
+<li><p>在线程私有化<code>LockMaps</code>之后，进行加锁时只需要访问线程本地的<code>LockMaps</code>，并查询<code>ColumnFamily</code>对应的<code>LockMap</code>，不需要加整个<code>PointLockManager</code>对象中的大锁</p>
+</li>
+<li><p>当然也有可能出现当前线程本地的<code>LockMaps</code>中不存在某个<code>ColumnFamily</code>的<code>LockMap</code>的问题，这个时候就需要加大锁从全局的<code>LockMaps</code>中查询结果，并添加到本地的<code>LockMaps</code>中</p>
+</li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/lluvialuo/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/" class="category-chain-item">数据库</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/lluvialuo/tags/RocksDB/" class="print-no-link">#RocksDB</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>RocksDB:线程私有化</div>
+      <div>https://github.com/lluvialuo/2024/05/12/RocksDB-线程私有化/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>Lluvia Luo</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2024年5月12日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/lluvialuo/2024/05/12/RocksDB-%E4%BA%8B%E5%8A%A1%E7%AE%A1%E7%90%86/" title="RocksDB:事务管理">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">RocksDB:事务管理</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+  
+  
+
+
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/lluvialuo/js/events.js" ></script>
+<script  src="/lluvialuo/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/lluvialuo/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  
+      <script>
+        if (!window.MathJax) {
+          window.MathJax = {
+            tex    : {
+              inlineMath: { '[+]': [['$', '$']] }
+            },
+            loader : {
+              load: ['ui/lazy']
+            },
+            options: {
+              renderActions: {
+                insertedScript: [200, () => {
+                  document.querySelectorAll('mjx-container').forEach(node => {
+                    let target = node.parentNode;
+                    if (target.nodeName.toLowerCase() === 'li') {
+                      target.parentNode.classList.add('has-jax');
+                    }
+                  });
+                }, '', false]
+              }
+            }
+          };
+        } else {
+          MathJax.startup.document.state(0);
+          MathJax.texReset();
+          MathJax.typeset();
+          MathJax.typesetPromise();
+        }
+
+        Fluid.events.registerRefreshCallback(function() {
+          if ('MathJax' in window && MathJax.startup.document && typeof MathJax.startup.document.state === 'function') {
+            MathJax.startup.document.state(0);
+            MathJax.texReset();
+            MathJax.typeset();
+            MathJax.typesetPromise();
+          }
+        });
+      </script>
+    
+
+  <script  src="https://lib.baomitu.com/mathjax/3.2.2/es5/tex-mml-chtml.js" ></script>
+
+  <script  src="/lluvialuo/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/lluvialuo/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

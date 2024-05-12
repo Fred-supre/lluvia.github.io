@@ -1,0 +1,1003 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/lluvialuo/img/%E5%A4%B4%E5%83%8F.jpeg">
+  <link rel="icon" href="/lluvialuo/img/%E5%A4%B4%E5%83%8F.jpeg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Lluvia Luo">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="一、隔离性（Isolation）1.1 隔离所导致的问题脏读  读取到了没有提交的数据，如果之前的事务回滚了，就读到了脏数据 注意这里的重点是：读取到了没有提交的事务的数据  不可重复读  一个事务对同一共享数据读取了两次，发现前后两次的数据不一致 不可重复读主要是针对update操作的描述，即表中的字段值发生了改变  幻读  一个事务内读取到了别的事务插入的数据，导致前后读取不一致 幻读主要用于">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RocksDB:事务管理">
+<meta property="og:url" content="https://github.com/lluvialuo/2024/05/12/RocksDB-%E4%BA%8B%E5%8A%A1%E7%AE%A1%E7%90%86/index.html">
+<meta property="og:site_name" content="Lluvia&#39;s blog">
+<meta property="og:description" content="一、隔离性（Isolation）1.1 隔离所导致的问题脏读  读取到了没有提交的数据，如果之前的事务回滚了，就读到了脏数据 注意这里的重点是：读取到了没有提交的事务的数据  不可重复读  一个事务对同一共享数据读取了两次，发现前后两次的数据不一致 不可重复读主要是针对update操作的描述，即表中的字段值发生了改变  幻读  一个事务内读取到了别的事务插入的数据，导致前后读取不一致 幻读主要用于">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://github.com/lluvialuo/2024/05/12/RocksDB-%E4%BA%8B%E5%8A%A1%E7%AE%A1%E7%90%86/WBWI.png">
+<meta property="og:image" content="https://github.com/lluvialuo/2024/05/12/RocksDB-%E4%BA%8B%E5%8A%A1%E7%AE%A1%E7%90%86/LockMaps.png">
+<meta property="og:image" content="https://github.com/lluvialuo/2024/05/12/RocksDB-%E4%BA%8B%E5%8A%A1%E7%AE%A1%E7%90%86/tracker.png">
+<meta property="article:published_time" content="2024-05-12T06:28:26.000Z">
+<meta property="article:modified_time" content="2024-05-12T06:44:50.274Z">
+<meta property="article:author" content="Lluvia Luo">
+<meta property="article:tag" content="RocksDB">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://github.com/lluvialuo/2024/05/12/RocksDB-%E4%BA%8B%E5%8A%A1%E7%AE%A1%E7%90%86/WBWI.png">
+  
+  
+  
+  <title>RocksDB:事务管理 - Lluvia&#39;s blog</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/lluvialuo/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/lluvialuo/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/lluvialuo/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"github.com","root":"/lluvialuo/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/lluvialuo/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/lluvialuo/js/utils.js" ></script>
+  <script  src="/lluvialuo/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.2.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/lluvialuo/">
+      <strong>Lluvia</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/lluvialuo/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/lluvialuo/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/lluvialuo/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/lluvialuo/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/lluvialuo/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/lluvialuo/img/mainpage.jpg') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="RocksDB:事务管理"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2024-05-12 14:28" pubdate>
+          2024年5月12日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          8.3k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          70 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">RocksDB:事务管理</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h1 id="一、隔离性（Isolation）"><a href="#一、隔离性（Isolation）" class="headerlink" title="一、隔离性（Isolation）"></a>一、隔离性（Isolation）</h1><h2 id="1-1-隔离所导致的问题"><a href="#1-1-隔离所导致的问题" class="headerlink" title="1.1 隔离所导致的问题"></a>1.1 隔离所导致的问题</h2><p><strong>脏读</strong></p>
+<ul>
+<li>读取到了没有提交的数据，如果之前的事务回滚了，就读到了脏数据</li>
+<li>注意这里的重点是：读取到了<strong>没有提交</strong>的事务的数据</li>
+</ul>
+<p><strong>不可重复读</strong></p>
+<ul>
+<li>一个事务对同一共享数据读取了两次，发现前后两次的数据不一致</li>
+<li>不可重复读主要是针对<code>update</code>操作的描述，即表中的字段值发生了改变</li>
+</ul>
+<p><strong>幻读</strong></p>
+<ul>
+<li>一个事务内读取到了别的事务插入的数据，导致前后读取不一致</li>
+<li>幻读主要用于描述的<code>insert</code> <code>delete</code>这样的操作所造成的影响，即前后两次查询获得的数据量不同</li>
+</ul>
+<h2 id="1-2-事务的隔离级别"><a href="#1-2-事务的隔离级别" class="headerlink" title="1.2 事务的隔离级别"></a>1.2 事务的隔离级别</h2><ul>
+<li>不同的事务隔离级别可以在不同程度上解决在并发执行事务时的问题</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>隔离级别</th>
+<th>脏读</th>
+<th>不可重复读</th>
+<th>幻读</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>未提交读</td>
+<td>✔️</td>
+<td>✔️</td>
+<td>✔️</td>
+</tr>
+<tr>
+<td>提交读</td>
+<td>❌</td>
+<td>✔️</td>
+<td>✔️</td>
+</tr>
+<tr>
+<td>可重复读</td>
+<td>❌</td>
+<td>❌</td>
+<td>✔️</td>
+</tr>
+<tr>
+<td>可串行化</td>
+<td>❌</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+</tbody></table>
+<h1 id="二、事务实现的基本框架"><a href="#二、事务实现的基本框架" class="headerlink" title="二、事务实现的基本框架"></a>二、事务实现的基本框架</h1><h2 id="2-1-MVCC"><a href="#2-1-MVCC" class="headerlink" title="2.1 MVCC"></a>2.1 MVCC</h2><h3 id="2-1-1-传统并发方案"><a href="#2-1-1-传统并发方案" class="headerlink" title="2.1.1 传统并发方案"></a>2.1.1 传统并发方案</h3><ul>
+<li>以前没有使用多版本控制的时候，在同一个事务中的读取操作是需要加读锁的，而不同的隔离级别就包含着不同的上锁和释放锁策略：<ul>
+<li>未提交读，我们只需要对事务中当前的读写操作进行加锁，单条操作完成之后立刻释放对应的锁；</li>
+<li>提交读，我需要在此基础上对写操作加的写锁进行保留，直到事务完成时进行释放，从而保证了事务中间的修改状态不会被别的事务读取到；</li>
+<li>可重复读，我们就需要延长读锁的释放时间了直到事务结束了，这样可以保证同一个事务的多次读取中间不会出现别的事务修改数据；</li>
+<li>解决幻读问题需要更进一步的间隙锁的支持，本质来说是加大了锁的范围。</li>
+</ul>
+</li>
+</ul>
+<h3 id="2-1-2-MVCC的优势"><a href="#2-1-2-MVCC的优势" class="headerlink" title="2.1.2 MVCC的优势"></a>2.1.2 MVCC的优势</h3><ul>
+<li>需要注意上面讲的加锁策略是对读事务和写事务都适用的，读操作依然需要进行加锁，而MVCC解决的问题就是对于只有读操作的事务可以不再需要加锁。</li>
+<li>MVCC带来了一个非常重要的性质，就是版本快照。通过这项技术的支持我们可以在事务中进行读取操作的时候，设定一个版本号，那么一切的读取操作都是基于这个版本号进行读取的。因此在前面章节所讨论的隔离级别所带来的三种问题其实就都不存在了，一个快照版本所包含的内容永远是不变的。</li>
+<li>但是MVCC其实仅仅解决了读事务的问题，对于写事务（往往既包含读操作又包含写操作）依然是需要进行加锁操作的，而且和传统的加锁模式是相同的。</li>
+</ul>
+<h3 id="2-1-3-MVCC下的并发"><a href="#2-1-3-MVCC下的并发" class="headerlink" title="2.1.3 MVCC下的并发"></a>2.1.3 MVCC下的并发</h3><ul>
+<li>但是MySQL为了更好的性能做了一些实现上的调整，使得用户可以根据需要来进行加锁的操作。首先在MySQL的事务中，所有的普通select操作都是基于版本快照的无锁读操作，当一个事务中的第一条普通select开始时会获取到一个快照，之后当前事务内的所有普通查询都会基于这个快照返回查询结果。如果这期间发生rollback，快照将会清零。</li>
+<li>但是一条insert、delete、update操作的语句是不能在快照的基础上完成的，必须在最新版本的基础上去完成增删改的操作，因此这部分的操作依然会存在加锁。</li>
+<li>我们重新回到前文中提到的三种并发下的问题：脏读、不可重复读、幻读，其描述都是说在一个事务中的两次读操作产生了不同的结果（我们已知这在MVCC下不可能）。但是数据库的很多写入数据是需要基于原来的状态进行变更的，比如经典的银行转账问题。需要先读出数据库中的余额，减去一定金额，再将结果写回数据库。这个过程其实是需要我们保证在写入的时候原数据中的那个金额和我们先前读出的金额保持一致的。而这才是真正内涵的需要两次读操作结果相同，这个例子对应的是可重复读这个隔离级别。</li>
+<li>这样的写事务流程需要根据原数据库中的一些基本状态来完成修改，insert、delete、update是必须在最新版本上进行操作的。但其实，读出的原始状态也是应该保证为最新版本的，为了区分普通的select操作，MySQL提供了两种查询中上锁的机制：</li>
+</ul>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-keyword">select</span> <span class="hljs-operator">*</span><span class="hljs-operator">*</span><span class="hljs-operator">*</span> <span class="hljs-keyword">for</span> <span class="hljs-keyword">update</span>;<br><span class="hljs-keyword">select</span> <span class="hljs-operator">*</span><span class="hljs-operator">*</span><span class="hljs-operator">*</span> lock <span class="hljs-keyword">in</span> share mode;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>前者适用于要对读出的行进行修改，例如转账的事务，因此会加互斥锁。</li>
+<li>后者适用于读这一段数据，但是是用这个结果修改别的地方，因此是加共享锁。</li>
+</ul>
+<h3 id="2-1-4-MVCC的隔离级别"><a href="#2-1-4-MVCC的隔离级别" class="headerlink" title="2.1.4 MVCC的隔离级别"></a>2.1.4 MVCC的隔离级别</h3><ul>
+<li>在多版本机制的支持下，可以轻松的避免脏读、不可重复读、幻读这些问题，但我们的隔离级别是对数据的返回结果存在明确规定的，不能在任何隔离级别下都对读事务采用最高等级的隔离机制</li>
+<li>MVCC由于其实现原理，只支持read committed和repeatable read隔离等级，在读事务下实现两种隔离机制的返回其实也很简单，（猜测是）RC下每条select都开启新的快照，RR下一个事务下的select共用一个快照</li>
+</ul>
+<h2 id="2-2-RocksDB的实现方法"><a href="#2-2-RocksDB的实现方法" class="headerlink" title="2.2 RocksDB的实现方法"></a>2.2 RocksDB的实现方法</h2><h3 id="2-2-1-Read-Uncommitted"><a href="#2-2-1-Read-Uncommitted" class="headerlink" title="2.2.1 Read Uncommitted"></a>2.2.1 Read Uncommitted</h3><ul>
+<li>这个其实很简单，使用没有事务API就可以实现了，任何操作都会直接被写入到数据库中，并可以被所有别的进程查询到</li>
+</ul>
+<h3 id="2-2-2-Read-Committed"><a href="#2-2-2-Read-Committed" class="headerlink" title="2.2.2 Read Committed"></a>2.2.2 Read Committed</h3><ul>
+<li>通过Rocksdb内部WriteBatch实现的，针对不同事务Rocksdb会为其分配对应的WriteBatch，由WriteBatch来处理具体的写入。</li>
+<li>同时针对同一个事务的读操作，会优先从当前事务的WriteBatch中读，来保证能够读到当前写操作之前未提交的更新。提交的时候则依次写入WAL和memtable之中，保证ACID的原子性和一致性。</li>
+<li>那么只要读操作全部都基于最新的版本进行读取就是RC隔离机制下的行为了。</li>
+</ul>
+<p><strong>WBWI(write batch with index) &amp; WB(write batch)</strong></p>
+<ul>
+<li>Put这样的更新接口被调用后会组织成一个WriteBatch 数据结构，将多个更新操作合并成一个请求，从而能够进行原子提交。整体是一个string-buf，将一个一个KV请求拼接进去。因此WB也就是提供了一个存放当前事务写入数据的内存块。</li>
+<li>WBWI用于支持事务功能，其在WriteBatch 基本结构的基础上构造了一个skiplist，用来提供事务操作过程中的 read-your-write 以及 savepoint&#x2F;rollback 等这样的基本功能。</li>
+<li>当前事务内，后续的 txn-&gt;Get 就能够有效得读到之前写入但是还没有提交的请求。</li>
+</ul>
+<div style="text-align:center;">
+    <img src="WBWI.png" srcset="/lluvialuo/img/loading.gif" lazyload alt="WBWI.png" width="550" height="224" class="jop-noMdConv">
+</div>
+
+<ul>
+<li><p>txn-&gt;SetSavePoint 函数会将当前 WriteBatchWithIndex 中的信息保存到一个 <code>std::stack&lt;SavePoint, autovector&lt;SavePoint&gt;&gt; stack</code>中。当前事务经过若干操作之后，后续的 txn-&gt;RollbackToSavePoint() 会进行弹栈，并将之前保存的状态信息更新到现在的WBWI 之中，从而达到事务的回滚的目的。</p>
+</li>
+<li><p>SetSavePoint 和 RollbackToSavePoint 函数的逻辑分别在：<code>WriteBatch::SetSavePoint()</code> ,<code>WriteBatch::RollbackToSavePoint()</code></p>
+</li>
+<li><p>因为WBWI 是在BeginTransaction 的时候构造的，所以每一个事务会有一个自己独立的WBWI，其内部的数据结构不需要考虑同步问题。</p>
+</li>
+</ul>
+<h3 id="2-2-3-Repeatable-Read"><a href="#2-2-3-Repeatable-Read" class="headerlink" title="2.2.3 Repeatable Read"></a>2.2.3 Repeatable Read</h3><ul>
+<li>其实在SQL指定标准之前，可重复读是用<strong>快照隔离</strong>来描述的，通用的关系型数据库都使用MVCC机制来进行多版本管理，多版本的访问也就是通过快照来进行的。</li>
+<li>Rocksdb这里的实现是通过为每一个写入的key-value请求添加一个LSN(Log Sequence Number)，最初是0，每次写入+1，达到全局递增的目的。同时当实现快照隔离时，通过Snapshot设置其与一个LSN绑定，则该snapshot能够访问到小于等于当前LSN的KV数据，而大于该LSN的KV是不可见的。</li>
+<li>注意如果只是普通的Get接口，则是根据我们设定的snapshot或者内部自动产生的snapshot来进行查询；但是要是用GetForUpdate这样的接口，我们是需要根据当前的最新状态来执行修改的，这时返回的是最新版本的值，并且会对查询的KV在后台进行加锁。</li>
+</ul>
+<p><strong>SetSnapshot</strong></p>
+<ul>
+<li>Rocksdb对于加锁的时机是在需要读写某个key之前才加锁，这样的方式可以满足绝大多数的事务隔离场景，当然在有些极端场景下，用户希望在事务一开始就对所有接下来需要读写key加锁，直到事务结束后再释放。这个该如何实现呢？并且无法在事务一开始就知道接下来要读写哪些key，所以无法提前对它们加锁。</li>
+<li>Rocksdb通过SetSnapshot来间接解决，BeginTransaction后，用户可以立刻调用SetSnapshot，这样该事务会记录当前DB的最新Sequence，然后再接下来事务的每一次Put操作时，会检查DB中该key的最新Sequence是否大于事务之前记录的Sequence，如果大于，则证明事务外部有对该key做了写操作，那么事务对应的Put则会返回失败。</li>
+<li>这里查询该key的最新版本是从version系统中取一个local_version ，直接暴力遍历这个version 中的 mem&#x2F;imm,imm-list&#x2F;sst ，拿到当前冲突key 一个最新的seq即可。（这里感觉会要较大的性能开销，因为可能涉及到磁盘IO，当然在RocksDB的内部，会去判断一下我们在事务开始设置的snapshot的LSN是否依然完全在内存中，如果还没有被刷到SST中，那我们在查询时就会只查到imm为止）</li>
+<li>因此Rocksdb采用相对乐观的处理方式，通过对Snapshot来取代提前对所有需要的key加锁，不过这样的处理方式可能会造成事务最终失败（事务外部修改某个key后会导致接下来事务内部修改失败）。</li>
+</ul>
+<h2 id="2-3-SnapShot"><a href="#2-3-SnapShot" class="headerlink" title="2.3 SnapShot"></a>2.3 SnapShot</h2><ul>
+<li>snapshot可以有多个，它的创建和删除是通过操作一个全局的双向链表来进行，天然得根据创建的时间来进行排序SetSnapShot()函数创建一个快照。</li>
+</ul>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-keyword">class</span> <span class="hljs-title class_">SnapshotImpl</span> : <span class="hljs-keyword">public</span> Snapshot &#123;<br> <span class="hljs-keyword">public</span>:<br>  <span class="hljs-comment">//lsn number</span><br>  SequenceNumber number_;  <br>  ......<br>  SnapshotImpl* prev_;<br>  SnapshotImpl* next_;<br>  SnapshotList* list_;                 <span class="hljs-comment">// 链表头指针</span><br>  <span class="hljs-type">int64_t</span> unix_time_; <span class="hljs-comment">//时间戳</span><br>  <span class="hljs-comment">// 用于写冲突的检查</span><br>  <span class="hljs-type">bool</span> is_write_conflict_boundary_;<br>&#125;;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>当前系统中存在的快照会影响compaction时，是否保留某些之前版本的KV，这个后面补充</li>
+</ul>
+<h2 id="2-4-PessimisticTransaction"><a href="#2-4-PessimisticTransaction" class="headerlink" title="2.4 PessimisticTransaction"></a>2.4 PessimisticTransaction</h2><ul>
+<li>使用 TransactionDB 进行事务操作，默认是 PessimisticTransactionDB，每次事务更新操作都会进行加锁，会去检测是否和其他事务有冲突。即 txn1 更新一个key1时会对当前key加锁，事务txn2 在 txn1 提交前尝试更新这个key1 则会失败。</li>
+<li>事务对Key的加锁逻辑是：<code>PessimisticTransaction::TryLock --&gt; PessimisticTransactionDB::TryLock --&gt; PointLockManager::TryLock</code></li>
+<li>比较老的版本 ，最后key 的加锁过程入口是 <code>TransactionLockMgr::TryLock</code>，这里重构成了 <code>LockManager::TryLock</code>，然后两种锁实现了<code>LockManager</code>接口，第三节详细介绍。死锁检测的机制也在第三节介绍。</li>
+</ul>
+<h2 id="2-5-OptimisticTransaction"><a href="#2-5-OptimisticTransaction" class="headerlink" title="2.5 OptimisticTransaction"></a>2.5 OptimisticTransaction</h2><ul>
+<li><p>在乐观事务下，不同事务之间的冲突检测不会在每次更新操作时候进行检测，而是在事务提交的时候进行。</p>
+</li>
+<li><p>在PessimisticTransaction下检测的方法其实就是加锁，而采用OptimisticTransaction的方案是在我们提交的时候进行检测，所以我们需要把事务过程中所有需要加的锁都记录下来。对于一般的点锁，那就是记录key值，如果是范围锁就是记录加锁的范围。</p>
+</li>
+<li><p>需要注意虽然OptimisticTransaction不需要在执行过程中加锁，但是我们应该把他当作是普通的事物流程，其Put、GetForUpdate这些函数内部依然是有TryLock函数的，只是TryLock内部行为变成了将要更新的 key的信息添加到 <code>LockTracker</code> 中。</p>
+</li>
+</ul>
+<p><strong>总结</strong></p>
+<ul>
+<li>悲观事务 和 乐观事务主要就是冲突检测的位置不同，所以悲观事务 在事务冲突概率较高的场景下能够保证提前发现冲突而更早的触发冲突事务的回滚。在冲突概率不高的情况下，悲观事务每一个更新（Put,Delete,Merge,GetForUpdate）都会做冲突检测，会引入较多的竞争开销，从而降低性能，所以冲突概率不高的场景可以尝试乐观事务DB。</li>
+</ul>
+<h1 id="三、锁"><a href="#三、锁" class="headerlink" title="三、锁"></a>三、锁</h1><ul>
+<li>RocksDB中共支持两种锁，分别是点锁<code>PointLockManager</code>和范围锁<code>RangeTreeLockManager</code>。点锁是原生支持的，可以在项目中找到完整的项目代码；范围锁是直接使用了TokuDB中的KV存储引擎<a href="https://github.com/percona/PerconaFT">PerconaFT</a>中的范围锁实现，进行接口封装之后进行使用的</li>
+<li>两者都继承自<code>LockManager</code>，其为C++的虚类，提供了一个通用的锁管理接口，用于在多线程&#x2F;多进程环境下管理对数据的并发访问</li>
+<li>需要注意，范围锁也是能够提供点锁能力的，并且当我选择提供范围锁能力的时候必须选择使用<code>RangeTreeLockManager</code>，两种锁同时使用是不能保证互斥的</li>
+</ul>
+<h2 id="3-1-PointLock"><a href="#3-1-PointLock" class="headerlink" title="3.1 PointLock"></a>3.1 PointLock</h2><ul>
+<li>在以前的实现版本中，因为只支持<code>PointLock</code>，这里不是通过继承<code>LockManager</code>实现的，而是使用<code>TransactionLockMgr</code>完成加锁的操作</li>
+<li>但是后来因为支持了<code>RangeLock</code>，不得已将这里设计成接口的方式，方便两种锁都可以使用，点锁的实现类为<code>PointLockManager</code></li>
+</ul>
+<h3 id="3-1-1-条件变量"><a href="#3-1-1-条件变量" class="headerlink" title="3.1.1 条件变量"></a>3.1.1 条件变量</h3><ul>
+<li>这里需要先提一个问题，多个线程在竞争同一个互斥资源的时候是使用互斥锁来实现互斥访问的，同时<code>Mutex</code>其实顺带完成了排队的工作，当一个线程释放锁时会自然触发一个在该锁上等待的线程恢复运行</li>
+<li>但是如果现在这个互斥的资源更加复杂，不能使用一个简单的互斥锁来实现互斥访问和排队的操作，并且在某些情况需要我们需要唤醒在这个资源上阻塞的线程，那么应该使用什么实现呢？</li>
+<li>这时需要使用条件变量来完成同步操作，<code>C++</code>中提供了两种接口，分别是<code>std::condition_variable</code>和<code>pthread_cond_t</code>，目前查到的区别是<code>pthread_cond_t</code>需要我们在<code>wait</code>之前手动加锁，而<code>std::condition_variable</code>在<code>wait</code>接口中自动完成加锁操作（个人感觉<code>std::condition_variable</code>是对<code>pthread_cond_t</code>的封装，本质上是相同的功能实现）</li>
+<li>在条件变量的帮助下，我们可以让线程对某一个条件进行等待，并形成等待队列，从而可以在未来满足条件的时候唤醒之前等待的线程</li>
+</ul>
+<h3 id="3-1-2-整体结构"><a href="#3-1-2-整体结构" class="headerlink" title="3.1.2 整体结构"></a>3.1.2 整体结构</h3><div style="text-align:center;">
+    <img src="LockMaps.png" srcset="/lluvialuo/img/loading.gif" lazyload alt="LockMaps.png" width="509" height="240" class="jop-noMdConv">
+</div>
+
+<ul>
+<li>整体结构从实现类<code>PointLockManager</code>开始，这里包含了最关键的成员对象<code>LockMaps</code>（其实是<code>UnorderedMap&lt;uint32_t, std::shared_ptr&lt;LockMap&gt;&gt;</code>），每次需要进行加锁时，我们通过<code>ColumnFamilyId</code>查找对应列簇下的<code>LockMap</code>（这里有使用线程私有存储进行优化，在别的章节解释了）</li>
+<li>然后<code>LockMap</code>内部是<code>LockMapStripe</code>的数组，这其实可以认为是哈希桶，每当我们需要对一个<code>key</code>进行加锁时，是通过哈希函数将<code>key</code>映射到其中一个<code>桶(LockMapStripe)</code>中，然后对这个桶进行加锁操作</li>
+<li>注意，这里并不是说对每个桶进行加锁之后，就完成对这个<code>key</code>的上锁操作了，这样是有可能造成某些<code>key</code>同时被锁上而造成意外的死锁的。同时这样的上锁机制粒度显然是非常粗的，不利于高并发的场景</li>
+<li>当对桶上锁完成之后，我们要做的是将上锁的key写入到<code>LockMapStripe</code>中的<code>UnorderedMap&lt;std::string, LockInfo&gt;</code>中，然后释放桶锁，这时才是完成了对某个<code>key</code>的上锁操作。下次有线程对某个key进行上锁时，需要查找<code>UnorderedMap</code>中是否已经存在这个<code>key</code>了。这样在共享<code>mutex</code>的情况下对所有未知可能的<code>key</code>都能进行上锁操作了</li>
+<li>但是这里有一个问题，如果上锁时发现已经被上锁了，我们需要先释放桶的锁，然后等待那个key被释放，即从<code>UnorderedMap</code>中被删除。这里需要用到条件变量来进行等待，对桶中的<code>CondVar</code>进行等待，当某个桶发生释放key的操作时，需要唤醒所有等待的线程</li>
+</ul>
+<h2 id="3-2-RangeLock"><a href="#3-2-RangeLock" class="headerlink" title="3.2 RangeLock"></a>3.2 RangeLock</h2><ul>
+<li>RocksDB一开始并没有支持范围锁，因此在Read Repeatable模式下并不能避免幻读的情况，后来是在直接使用了TokuDB的存储引擎<a href="https://github.com/percona/PerconaFT">PerconaFT</a>的范围锁实现</li>
+<li>PerconaFT提供的locktree是使用二叉树的形式来组织整个锁结构的。需要注意当我们选择支持范围锁时，就不能同时使用PointLock，点锁也需要在RangeLock中完成。因为在真实的负载下点锁和范围锁显然是共存的，并且两者之间是需要实现互斥的</li>
+</ul>
+<h3 id="3-2-1-基本结构"><a href="#3-2-1-基本结构" class="headerlink" title="3.2.1 基本结构"></a>3.2.1 基本结构</h3><p><strong><code>treenode</code>:</strong></p>
+<ul>
+<li>主要包括四个关键部分：<ul>
+<li><code>mutex</code>，并发操作二叉树时保证正确性</li>
+<li><code>keyrange</code>，当前这个<code>node</code>所表示的键范围，左右都是闭区间，当左右值相等时表示<code>pointlock</code></li>
+<li><code>m_txnid</code>和<code>m_owners</code>，表示占用当前这个锁的事务ID；当有多个事务同时持有这个范围的度锁时，<code>m_txnid</code>为一个特殊值，持有共享锁的事务ID集合在<code>m_owners</code>中</li>
+<li><code>m_left_child</code>和<code>m_right_child</code>，构建二叉树的指针</li>
+</ul>
+</li>
+</ul>
+<p><strong><code>concurrent_tree</code>:</strong></p>
+<ul>
+<li>成员变量只有一个根节点<code>treenode m_root</code>，内部类<code>locked_keyrange</code>封装了实现并发访问二叉树的细节。所以<code>concurrent_tree</code>类没有太多东西</li>
+</ul>
+<p><strong><code>locktree</code>:</strong></p>
+<ul>
+<li>局部变量比较多，核心部分是：<ul>
+<li><code>m_dict_id</code>，表示当前这个<code>locktree</code>属于哪一个字典，其实就是属于哪一个<code>ColumnFamily</code></li>
+<li><code>m_rangetree</code>，这个就是<code>concurrent_tree</code>的指针</li>
+<li><code>m_lock_request_info</code>，这是一个很关键的成员变量，其中保存了对当前这个<code>locktree</code>申请锁，但是没有成功的请求，和<code>request</code>的排队有重要关系</li>
+</ul>
+</li>
+</ul>
+<p><strong><code>locktree_manager</code>:</strong></p>
+<ul>
+<li>这个类是管理多个<code>ColumnFamily</code>的，和<code>PointLockManager</code>其实是相同的设计，内部使用<code>Order Maintenance Tree (OMT)</code>管理多个<code>locktree</code></li>
+<li>此外RocksDB在外面还包了一层<code>RangeTreeLockManager</code>，并且在这里实现了和<code>PointLockManager</code>相同的线程局部优化</li>
+</ul>
+<p><strong><code>lt_lock_request_info</code>:</strong></p>
+<ul>
+<li>前面已经提到了核心是保存请求锁暂时失败的<code>request</code>，除此之外当有锁发生释放的时候还需要基于这个结构体唤醒<code>request</code>来重试加锁，因此主要包括三个部分：<ul>
+<li><code>omt&lt;lock_request *&gt; pending_lock_requests</code>，对所有暂时失败请求的缓存</li>
+<li><code>toku_external_mutex_t mutex</code>，操作当前这个结构体的内容需要加锁保证正确性</li>
+<li><code>toku_mutex_t retry_mutex</code>和<code>toku_cond_t retry_cv</code>，管理重试加锁操作的锁和条件变量，当多个锁发生释放时，每次锁的释放都会触发剩余等待request进行重试，但是同一时间只能有一个线程在遍历<code>pending_lock_requests</code>进行重试，所以这里需要进行精细的控制</li>
+</ul>
+</li>
+</ul>
+<p><strong><code>locked_keyrange</code>:</strong></p>
+<ul>
+<li>这个类是定义在<code>concurrent_tree</code>内部的，用来在并发状态下完成查找、插入、删除节点的工作</li>
+<li>并发控制的方式其实比较简单，和<code>B+tree</code>在并发控制时使用的加锁解锁策略是相同的，就是交错释放二叉树链条上的两把锁</li>
+<li>需要注意这里提到的加锁是指在并发访问二叉树的节点时的控制手段，和<code>rangelock</code>是没有关系的，范围锁的实现其实是每一个存储在二叉树中的节点，只要某个节点存在就表示对该范围加锁</li>
+<li>内部总共有三个成员变量：<ul>
+<li><code>concurrent_tree *m_tree</code></li>
+<li><code>keyrange m_range</code>，期望锁住的键范围，需要注意这个值来源于进行加锁操作的<code>locked_keyrange::acquire</code>函数的传入参数，即这个是用户希望加锁的范围</li>
+<li><code>treenode *m_subtree</code>，在查找流程结束时（即经过<code>prepare</code>和<code>acquire</code>两个函数），这个变量存储的是最深的存在范围覆盖的节点；如果没有范围覆盖的节点，会一直往下查找到一个<code>nullptr</code>的指针，这时存的是持有这个<code>nullptr</code>指针的节点（很重要的一点，<code>locked_keyrange</code>这时只持有<code>m_subtree</code>节点的锁）</li>
+</ul>
+</li>
+<li>二叉树还是一个平衡的树，在各种操作中间穿插着各种调整树结构平衡的操作，这部分不是重点没有细看</li>
+</ul>
+<p><strong><code>lock_request</code>:</strong></p>
+<ul>
+<li>真正实现向<code>rangelock</code>加锁的类，较为核心的成员变量为：<ul>
+<li><code>m_left_key</code>和<code>m_right_key</code>，范围的左右边界</li>
+<li><code>locktree *m_lt</code>，实施加锁的二叉树，就是<code>ColumnFamily</code>对应的<code>locktree</code></li>
+<li><code>lt_lock_request_info *m_info</code>，对应<code>locktree</code>内部的，本质来说不用重新存一份，可以通过前面的<code>m_lt</code>访问到</li>
+<li><code>toku_external_cond_t m_wait_cond</code>，这个条件变量比较关键，当无法完成加锁而需要进行等待时，是在这个条件变量上进行等待。同时前面有提到过，当一个<code>rangelock</code>释放之后会遍历<code>requests</code>进行重试加锁，如果重试成功时需要唤醒这个条件变量</li>
+</ul>
+</li>
+</ul>
+<h3 id="3-2-2-代码逻辑"><a href="#3-2-2-代码逻辑" class="headerlink" title="3.2.2 代码逻辑"></a>3.2.2 代码逻辑</h3><p><strong>加锁 <code>RangeTreeLockManager::TryLock</code></strong></p>
+<ul>
+<li>首先创建<code>request</code>，并设置初始值</li>
+<li>接着是调用<code>request.start()</code>，这一步是进行加锁的关键步骤，会尝试在<code>locktree</code>中添加新节点来完成加锁<ul>
+<li>这里会有比较多的调用栈，最后是进入到<code>locktree::acquire_lock</code>，然后创建一个<code>locked_keyrange lkr</code>并调用<code>prepare</code>方法获得根节点的锁</li>
+<li>然后将<code>lkr</code>传入<code>acquire_lock_consolidated</code>函数，通过<code>acquire</code>方法查找目标子树（这个方法的细节在上一小节有提到）</li>
+<li>找到目标子树之后，通过<code>iterate_and_get_overlapping_row_locks()</code>去收集与申请加锁范围存在<code>overlap</code>的节点，注意这里在写锁和读锁的操作上发生了分歧。如果是要加写锁，不可能会存在可以共享的节点；如果是加读锁，有一种情况可以简单完成加锁操作，即当我们找到一个节点的范围和请求的range完全相匹配，并且已经持有的是读锁时，我们可以简单的将当前请求的<code>txnid</code>添加到那个节点中就算完成加锁了。（存在任何差别都不能以这样共享的方式完成加锁操作，所以真正能实现共享锁的情况很少）</li>
+<li>上面收集到存在<code>overlap</code>的节点之后，通过<code>determine_conflicting_txnids()</code>检查存在冲突的节点，其实就是检查这些已经被上锁的节点是否本来就是被当前这个事务所持有的，如果全部<code>overlap</code>节点都是的话需要我们将这些范围进行合并，算是一个小优化减少<code>locktree</code>的规模</li>
+<li>如果是存在加锁冲突的，这时会把当前<code>request</code>的状态设置为<code>DB_LOCK_NOTGRANTED</code>，表示存在互斥需要等待</li>
+<li>然后退回到<code>request.start()</code>，如果当前<code>request</code>的状态为<code>DB_LOCK_NOTGRANTED</code>需要我们将其<strong>添加到<code>lt_lock_request_info</code>中</strong></li>
+</ul>
+</li>
+<li>然后是调用<code>request.wait()</code>，这里是当上一步进行加锁发现存在冲突而失败时，通过<code>request.m_wait_cond</code>来完成等待操作；如果上一步成功加锁了，这个函数会快速经过<ul>
+<li>进入函数之后先对<code>m_info-&gt;mutex</code>加锁，然后会有一次重新进行加锁的尝试，如果加锁成功了就可以不用去等待条件变量了，并且直接成功返回（这里的<code>retry</code>非常重要，单独开小节讲）</li>
+<li>然后就是进入一个<code>while</code>循环中，等待<code>request</code>中的条件变量，等待超时唤醒，或者被别的线程唤醒</li>
+</ul>
+</li>
+</ul>
+<p><strong>为什么在<code>request.wait()</code>需要<code>retry</code></strong></p>
+<ul>
+<li>我们想象一个情况，现在A线程已经对<code>range[1,2]</code>加锁，B线程对相同的范围加锁时必然会冲突，然后将<code>request</code>添加到<code>lt_lock_request_info</code>中，并且开始等待条件变量。</li>
+<li>但是如果在B线程加锁失败和将<code>request</code>添加到<code>lt_lock_request_info</code>的期间，A线程释放了<code>range[1,2]</code>。从后面的释放锁流程我们知道，每次调用<code>UnLock</code>的最后一步是<code>retry</code>所有等待的<code>request</code>。那么A并不会帮助B的<code>request</code>成功申请到锁了，此时这个<code>request</code>还不存在于<code>lt_lock_request_info</code>中，但是B会依然开始等待条件变量，并且不会再有线程能够唤醒这个条件变量，B只能等待超时唤醒</li>
+<li>解决的方法就是重试，我们需要注意代码中关于<code>m_info</code>的操作都需要在<code>m_info-&gt;mutex</code>的锁定下执行。B将<code>request</code>添加到<code>lt_lock_request_info</code>需要加锁，在<code>request.wait</code>中，每次先获得<code>m_info-&gt;mutex</code>之后，进行一次<code>retry</code>，然后再等待条件变量，条件变量的<code>wait</code>语句会释放持有的<code>m_info-&gt;mutex</code>。同样A在<code>UnLock</code>的最后一步<code>retry</code>所有等待的<code>request</code>时，也需要先获得<code>m_info-&gt;mutex</code></li>
+<li>那么A如果是在B将<code>request</code>添加到<code>lt_lock_request_info</code>之前先retry了所有的，B的<code>retry</code>会成功完成加锁；如果A的retry在B的之后，那么A需要等待B等待条件变量，并且释放<code>m_info-&gt;mutex</code>之后，再执行<code>retry_all_lock_requests_info</code>，这时会正常唤醒B</li>
+</ul>
+<p><strong>解锁 <code>RangeTreeLockManager::UnLock</code></strong></p>
+<ul>
+<li>有两种支持方式，一种是直接提告诉要解锁哪一个键范围，这种方式比较符合<code>locktree</code>的实现，可以直接调用对应的接口；还有一种在数据库中比较常用，即当一个事务完成时，我们直接释放和这个事务相关的所有锁，这种和<code>locktree</code>的设计是不匹配的，需要我们单独去保存事物加的所有锁，然后一次性释放，RocksDB实现了一个<code>LockTracker</code>去支持这种功能</li>
+<li>首先是从<code>locktree</code>中释放锁的函数<code>locktree::release_locks</code>，其实就是将所有当初加锁插入的节点全部删除掉，所以只需要保证二叉树的并发控制就可以了。需要注意我们在加锁阶段有个优化是将存在<code>overlap</code>但是不冲突的节点进行合并，但是我们记录的加锁范围还是最初没有合并的样子。</li>
+<li>所以最后在删除节点的时候我们可能发现某些节点的边界是不能和记录值完全对应的，这里代码的处理是只要存在<code>overlap</code>就直接删除这个节点。这会带来两个问题：1. 有的节点删除会发现当前范围的节点不存在；2. 我们将后加锁的某些范围释放之后，前面的一些加锁范围可能就自然释放了，因此我们在使用锁的时候必须遵守事务进行加锁的规范，不能中途释放锁</li>
+<li>然后是重试当前等待的<code>request</code>的函数<code>lock_request::retry_all_lock_requests</code>，首先每一次执行全部重试都是非常繁琐的过程，需要对<code>lt_lock_request_info</code>中的每一个请求都进行重试看看能不能加锁成功，并且只有加锁成功之后才对<code>request</code>中的条件变量进行唤醒。重试意味着查询整个二叉树，是需要不断进行加锁和释放锁操作的，性能会较大程度被影响。</li>
+<li>每一次释放某个事务的锁都会触发整体的重试操作，为了减少重试带来的性能影响，有一个简单的机制来保证，和<code>retry_cv</code>与<code>retry_mutex</code>相关。大概功能就是当目前有很多<code>retry</code>在排队时，我执行一次重试就可以了，因为释放的锁都已经反映到<code>locktree</code>上了，执行一次全部的重试就包含到了所有情况</li>
+<li>然后就是依次重试所有<code>request</code>了，那些成功加锁的会被通过条件变量唤醒，注意一点在<code>PointLock</code>中当发生释放锁操作时是唤醒所有的等待线程自己去竞争重试加锁，而在<code>RangeLock</code>的实现中是通过释放锁的线程去重试的，这是否会较大影响事务的执行尾延迟呢？</li>
+</ul>
+<h3 id="3-2-3-STO优化"><a href="#3-2-3-STO优化" class="headerlink" title="3.2.3 STO优化"></a>3.2.3 STO优化</h3><ul>
+<li>这是对范围锁的一个优化，大概思路是说当目前只有一个事务在申请锁，并不存在多个事务在竞争时，我们直接通过一个缓存保留所有的加锁操作，而不将加锁添加到<code>locktree</code>中。</li>
+<li>当释放锁的时候直接释放缓存即可，大大减少锁处理的时间。但是这只对不存在多事务并行发生的条件下使用</li>
+</ul>
+<h2 id="3-3-Tracker"><a href="#3-3-Tracker" class="headerlink" title="3.3 Tracker"></a>3.3 Tracker</h2><div style="text-align:center;">
+    <img src="tracker.png" srcset="/lluvialuo/img/loading.gif" lazyload alt="tracker.png" width="678" height="229" class="jop-noMdConv">
+</div>
+
+<ul>
+<li>上图是LockTracker中用于管理跟踪的加锁信息的局部变量<code>TrackedKeys tracked_keys_</code>的结构示意图，其实就是两层HashMap，第一层是通过ColumnFamilyData索引，第二层通过key索引，最后找到<code>TrackedKeyInfo</code>，其包含加锁的key的各种信息（这里其实只说了PointLock下的Tracker，在RangeLock下是会不一样的）</li>
+<li>在commit时，冲突检测的主要函数入口是 OptimisticTransaction::CheckTransactionForConflicts()，它会进一步调用 TransactionUtil::CheckKeysForConflicts() 执行冲突检测</li>
+<li>要检测的其实就是每个 Key 在 db 中有没有比当前事务开始的 sequence 号之后更新的写入存在。最笨的办法就是把每个 Key 读一次 db，获得它最近的 sequence 号，与事务的 sequence 号做比较。如果 db 中的 sequence 号更大，事务冲突了。</li>
+<li>简单优化一下就只需要判断近期的数据就可以了，而最近期的数据就是 MemTable，所以做近期的冲突检测，只需要读 MemTable 的数据就足够了，不需要执行 IO。不过事务的开始时间如果比 MemTable 中最老的 Key 还早，就无法判断了，这时 rocksdb 的处理也比较暴力，就直接说这个事务过期了，需要重试。</li>
+<li>在检测的实现上RocksDB是通过<code>WriteWithCallback</code>在写入WriteBatch时通过调用OptimisticTransactionCallback实现，所有的检查逻辑都在回掉函数里面，提供了两种 OCC (optimistic concurrent control)策略: <code>kValidateParallel</code> 和 <code>kValidateSerial</code><ul>
+<li><code>OptimisticTransaction::CommitWithSerialValidate</code>正常进行检查，但是比较慢</li>
+<li><code>OptimisticTransaction::CommitWithParallelValidate</code>后来的优化</li>
+</ul>
+</li>
+<li>Tracker机制也会影响到compaction，当我们需要将delete操作和原有KV数据进行合并时，要考虑将曾经出现过的KV直接删除是否会影响到现有Tracker的信息校验。</li>
+</ul>
+<h2 id="3-4-Deadlock"><a href="#3-4-Deadlock" class="headerlink" title="3.4 Deadlock"></a>3.4 Deadlock</h2><ul>
+<li>采用PessimisticTransaction方式执行事务时，加锁顺序完全是由用户来决定的，因此存在很大的可能出现死锁问题。RocksDB通过记录事务间的等待关系来判定是否存在环，从而判定是否有死锁存在</li>
+<li>死锁检测的核心是想要在一个 <strong>有向无环图</strong> 中检测有没有wait_circle，rocksdb的死锁检测就是拿着当前事务前面尝试获取锁时得到的一个<strong>wait_ids 数组</strong>和已有的wait-circle来构建一个 有向无环图，在这个有向无环图中按照前面用户配置的depth进行wait-circle的检测。</li>
+<li>死锁检测入口是在<code>PointLockManager::IncrementWaiters</code>里面，通过前面对当前 txn 构造好的<code>wait_ids</code>数组构造 <code>wait_txn_map_</code> 和 <code>rev_wait_txn_map_</code> 两个 HashMap。<ul>
+<li><code>HashMap&lt;TransactionID, int&gt; rev_wait_txn_map_</code> 用来保存活跃事务和该事务在被多少个事务所等待</li>
+<li><code>HashMap&lt;TransactionID, TrackedTrxInfo&gt; wait_txn_map_</code> 用来保存整个活跃事务视图，用于广度优先遍历。保存的内容是 当前事务等待哪些事务</li>
+</ul>
+</li>
+<li>接下来就是经典的广度优先遍历的实现了，通过提前resize 好的两个vector queue_values 和 queue_parents ，resize的大小是前面说的 deadlock_detect_depth。 queue_values 保存层序，即每一层的所有节点；queue_parents 用来记录当前层的父节点的下标，方便后面在发现死锁环之后进行死锁路径的回溯。</li>
+<li>结束的条件是：<ul>
+<li>在 deadlock_detect_depth 这个检测深度下如果没有发现 当前事务id 和 已有活跃事务依赖图 中不会有相等的情况，则认为不会死锁，返回未发现死锁。</li>
+<li>如果发现有相等的，也就是在依赖图 下找到了环的存在，则通过 queue_parents 数组来回溯当前事务在依赖图中的依赖路径，保存到 dlock_buffer_ 中，同时将该事务信息从事务依赖图中踢出 DecrementWaitersImpl，也就是将当前txn的<code>wait_ids</code>逆着走一遍初始化的过程，返回发现死锁。</li>
+</ul>
+</li>
+<li>注意一点，就是一个事务是有可能同时等待多个事务的，这个主要出现在使用RangeLock的情况，一个范围锁可能涵盖多个锁，那当然就要等待多个事务了。</li>
+</ul>
+<h1 id="四、两阶段提交（Two-Phase-Commit）"><a href="#四、两阶段提交（Two-Phase-Commit）" class="headerlink" title="四、两阶段提交（Two Phase Commit）"></a>四、两阶段提交（Two Phase Commit）</h1>
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/lluvialuo/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/" class="category-chain-item">数据库</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/lluvialuo/tags/RocksDB/" class="print-no-link">#RocksDB</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>RocksDB:事务管理</div>
+      <div>https://github.com/lluvialuo/2024/05/12/RocksDB-事务管理/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>Lluvia Luo</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2024年5月12日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/lluvialuo/2024/05/12/%E5%8D%8F%E7%A8%8B%E5%BA%93/" title="协程库">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">协程库</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/lluvialuo/2024/05/12/RocksDB-%E7%BA%BF%E7%A8%8B%E7%A7%81%E6%9C%89%E5%8C%96/" title="RocksDB:线程私有化">
+                        <span class="hidden-mobile">RocksDB:线程私有化</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+  
+  
+
+
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/lluvialuo/js/events.js" ></script>
+<script  src="/lluvialuo/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/lluvialuo/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  
+      <script>
+        if (!window.MathJax) {
+          window.MathJax = {
+            tex    : {
+              inlineMath: { '[+]': [['$', '$']] }
+            },
+            loader : {
+              load: ['ui/lazy']
+            },
+            options: {
+              renderActions: {
+                insertedScript: [200, () => {
+                  document.querySelectorAll('mjx-container').forEach(node => {
+                    let target = node.parentNode;
+                    if (target.nodeName.toLowerCase() === 'li') {
+                      target.parentNode.classList.add('has-jax');
+                    }
+                  });
+                }, '', false]
+              }
+            }
+          };
+        } else {
+          MathJax.startup.document.state(0);
+          MathJax.texReset();
+          MathJax.typeset();
+          MathJax.typesetPromise();
+        }
+
+        Fluid.events.registerRefreshCallback(function() {
+          if ('MathJax' in window && MathJax.startup.document && typeof MathJax.startup.document.state === 'function') {
+            MathJax.startup.document.state(0);
+            MathJax.texReset();
+            MathJax.typeset();
+            MathJax.typesetPromise();
+          }
+        });
+      </script>
+    
+
+  <script  src="https://lib.baomitu.com/mathjax/3.2.2/es5/tex-mml-chtml.js" ></script>
+
+  <script  src="/lluvialuo/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/lluvialuo/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
