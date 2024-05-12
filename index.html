@@ -253,6 +253,189 @@
     <article class="col-12 col-md-12 mx-auto index-info">
       <h2 class="index-header">
         
+        <a href="/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/" target="_self">
+          Linux:文件IO
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/" target="_self">
+        <div>
+          一、I&#x2F;O同步&#x2F;异步  同步、异步强调的是消息的通信机制（同步通信&#x2F;异步通信）  同步，就是在发出一个”调用”时，在没有得到结果之前，该“调用”就不返回。但是一旦调用返回，就得到返回值了。换句话说，就是由“调用者”主动等待这个“调用”的结果。  异步则是相反，”调用”在发出之后，这个调用就直接返回了，所以没有返回结果。换句话说，当一个异步过程调用发出后，调用者不会立刻
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2024-05-12 21:01" pubdate>
+              2024-05-12
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/Linux/" class="category-chain-item">Linux</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/Linux/">#Linux</a>
+            
+          </div>
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
+        <a href="/2024/05/12/Linux-%E5%90%8C%E6%AD%A5%E4%B8%8E%E9%94%81/" target="_self">
+          Linux:同步与锁
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/2024/05/12/Linux-%E5%90%8C%E6%AD%A5%E4%B8%8E%E9%94%81/" target="_self">
+        <div>
+          一、互斥量 在Linux中要实现互斥锁mutex最简单的办法是通过操作系统提供的信号量来实现，但是目前在C++中调用pthread_mutex_lock并不是直接通过操作系统的信号量原语来实现的，而是使用了优化过的futex来实现。  1.1 futex基本概念 Futex 是Fast Userspace muTexes的缩写，在传统的Unix系统中当进程间要同步的时候必须要通过系统调用(如sem
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2024-05-12 20:49" pubdate>
+              2024-05-12
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/Linux/" class="category-chain-item">Linux</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/Linux/">#Linux</a>
+            
+          </div>
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
+        <a href="/2024/05/12/Linux-%E8%BF%9B%E7%A8%8B%E7%AE%A1%E7%90%86/" target="_self">
+          Linux:进程管理
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/2024/05/12/Linux-%E8%BF%9B%E7%A8%8B%E7%AE%A1%E7%90%86/" target="_self">
+        <div>
+          一、进程管理1.1 进程 进程是处于执行期的程序，除了除了可执行代码之外，还包含： 打开的文件 挂起的信号 内核内部数据 处理器状态 具有内存映射的内存地址空间 执行的线程 存放全局变量的数据段   线程则包含一个独立的程序计数器、进程栈和一组进程寄存器 内核调度的对象是线程，而非进程，在Linux中线程只不过是特殊的进程  1.2 进程描述符和任务结构 进程描述符task_struct，通过双向
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2024-05-12 20:39" pubdate>
+              2024-05-12
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/Linux/" class="category-chain-item">Linux</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/Linux/">#Linux</a>
+            
+          </div>
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
         <a href="/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/" target="_self">
           Linux:高速缓存
         </a>

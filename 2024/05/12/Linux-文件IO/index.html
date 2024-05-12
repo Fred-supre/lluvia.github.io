@@ -1,0 +1,1215 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/%E5%A4%B4%E5%83%8F.jpeg">
+  <link rel="icon" href="/img/%E5%A4%B4%E5%83%8F.jpeg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Lluvia Luo">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="一、I&#x2F;O同步&#x2F;异步  同步、异步强调的是消息的通信机制（同步通信&#x2F;异步通信）  同步，就是在发出一个”调用”时，在没有得到结果之前，该“调用”就不返回。但是一旦调用返回，就得到返回值了。换句话说，就是由“调用者”主动等待这个“调用”的结果。  异步则是相反，”调用”在发出之后，这个调用就直接返回了，所以没有返回结果。换句话说，当一个异步过程调用发出后，调用者不会立刻">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux:文件IO">
+<meta property="og:url" content="https://github.com/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/index.html">
+<meta property="og:site_name" content="Lluvia&#39;s blog">
+<meta property="og:description" content="一、I&#x2F;O同步&#x2F;异步  同步、异步强调的是消息的通信机制（同步通信&#x2F;异步通信）  同步，就是在发出一个”调用”时，在没有得到结果之前，该“调用”就不返回。但是一旦调用返回，就得到返回值了。换句话说，就是由“调用者”主动等待这个“调用”的结果。  异步则是相反，”调用”在发出之后，这个调用就直接返回了，所以没有返回结果。换句话说，当一个异步过程调用发出后，调用者不会立刻">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/io.webp">
+<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/epoll.webp">
+<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/uring.png">
+<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/%E4%BC%A0%E7%BB%9F%E6%96%87%E4%BB%B6%E4%BC%A0%E8%BE%93.webp">
+<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/mmap%20+%20write%20%E9%9B%B6%E6%8B%B7%E8%B4%9D.webp">
+<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/sendfile-%E9%9B%B6%E6%8B%B7%E8%B4%9D.webp">
+<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/%E5%8D%95Reactor%E5%8D%95%E8%BF%9B%E7%A8%8B.webp">
+<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/%E5%8D%95Reactor%E5%A4%9A%E7%BA%BF%E7%A8%8B.webp">
+<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/%E4%B8%BB%E4%BB%8EReactor%E5%A4%9A%E7%BA%BF%E7%A8%8B.webp">
+<meta property="article:published_time" content="2024-05-12T13:01:52.000Z">
+<meta property="article:modified_time" content="2024-05-12T13:23:23.389Z">
+<meta property="article:author" content="Lluvia Luo">
+<meta property="article:tag" content="Linux">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://github.com/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/io.webp">
+  
+  
+  
+  <title>Linux:文件IO - Lluvia&#39;s blog</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"github.com","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"GYXWwiquLells7Jk5YnXDL14-gzGzoHsz","app_key":"ZwOt64lE5AeeAOjGF9nhJl9b","server_url":"https://gyxwwiqu.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+  
+
+  
+    <!-- Google tag (gtag.js) -->
+    <script async>
+      if (!Fluid.ctx.dnt) {
+        Fluid.utils.createScript("https://www.googletagmanager.com/gtag/js?id=", function() {
+          window.dataLayer = window.dataLayer || [];
+          function gtag() {
+            dataLayer.push(arguments);
+          }
+          gtag('js', new Date());
+          gtag('config', '');
+        });
+      }
+    </script>
+  
+
+  
+
+  
+
+  
+
+  
+    
+  
+
+
+
+  
+<meta name="generator" content="Hexo 7.2.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Lluvia</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/mainpage.jpg') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="Linux:文件IO"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2024-05-12 21:01" pubdate>
+          2024年5月12日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          7.6k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          64 分钟
+        
+      </span>
+    
+
+    
+    
+      
+        <span id="leancloud-page-views-container" class="post-meta" style="display: none">
+          <i class="iconfont icon-eye" aria-hidden="true"></i>
+          <span id="leancloud-page-views"></span> 次
+        </span>
+        
+      
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">Linux:文件IO</h1>
+            
+              <p id="updated-time" class="note note-info" style="">
+                
+                  
+                    本文最后更新于 2024年5月12日 晚上
+                  
+                
+              </p>
+            
+            
+              <div class="markdown-body">
+                
+                <h1 id="一、I-O"><a href="#一、I-O" class="headerlink" title="一、I&#x2F;O"></a>一、I&#x2F;O</h1><p><strong>同步&#x2F;异步</strong></p>
+<ul>
+<li><p>同步、异步强调的是消息的通信机制（同步通信&#x2F;异步通信）</p>
+<ul>
+<li><p>同步，就是在发出一个”调用”时，在没有得到结果之前，该“调用”就不返回。但是一旦调用返回，就得到返回值了。换句话说，就是由“调用者”主动等待这个“调用”的结果。</p>
+</li>
+<li><p>异步则是相反，”调用”在发出之后，这个调用就直接返回了，所以没有返回结果。换句话说，当一个异步过程调用发出后，调用者不会立刻得到结果。而是在”调用”发出后，”被调用者”通过状态、通知来通知调用者，或通过回调函数处理这个调用。</p>
+</li>
+</ul>
+</li>
+</ul>
+<p><strong>阻塞&#x2F;非阻塞</strong></p>
+<ul>
+<li><p>阻塞、非阻塞强调的是程序在等待调用结果（消息，返回值）时的状态</p>
+<ul>
+<li><p>阻塞调用是指调用结果返回之前，当前线程会被挂起，一直处于等待消息通知，不能够执行其他业务</p>
+</li>
+<li><p>非阻塞调用指在不能立刻得到结果之前，该调用不会阻塞当前线程</p>
+</li>
+</ul>
+</li>
+</ul>
+<p><strong>五种IO模型</strong></p>
+<div style="text-align:center;">
+    <img src="io.webp" srcset="/img/loading.gif" lazyload alt="输入图片描述" width="522" height="334" class="jop-noMdConv">
+</div>
+
+<p><strong>同步阻塞IO blocking IO</strong></p>
+<ul>
+<li><p>首先采用主动等待调用返回的这种方式；然后在等待期间，需要将进程阻塞</p>
+</li>
+<li><p>在等待数据到处理数据的两个阶段，整个进程都是被阻塞的</p>
+</li>
+</ul>
+<p><strong>同步非阻塞IO nonblocking IO</strong></p>
+<ul>
+<li><p>依然是主动等待调用返回的方式，但是这里不再是通过阻塞的方式来等待调用函数的返回，而是调用函数直接返回，但是这里返回的是一个<code>error</code>，进程需要不断调用这个函数来查看运行情况</p>
+</li>
+<li><p>这样的过程通常被称为<strong>轮询</strong>，轮询检查内核数据，直到数据准备好，再拷贝数据到进程，进行数据处理。</p>
+</li>
+<li><p>但是这里只是轮询等待数据准备好，将数据拷贝到用户进程依然是通过阻塞的方式来进行的（这里需要重点注意，数据传送过程依然是阻塞的）</p>
+</li>
+</ul>
+<p><strong>IO多路复用 IO multiplexing</strong></p>
+<ul>
+<li>其实是同步非阻塞IO的升级版，通过把多个I&#x2F;O的阻塞复用到同一个select的阻塞上，从而使得系统在单线程的情况下可以同时处理多个客户端请求，可以等待多个socket，能实现同时对多个IO端口进行监听</li>
+</ul>
+<p><strong>信号驱动式IO signal-driven IO</strong></p>
+<ul>
+<li><p>安装一个信号处理函数，在信号处理函数中调用IO操作函数处理数据</p>
+</li>
+<li><p>但是在数据拷贝的阶段依然是采用的阻塞的方式</p>
+</li>
+</ul>
+<p><strong>异步非阻塞IO asynchronous IO</strong></p>
+<ul>
+<li><p>无论是等待数据阶段，还是数据拷贝阶段都是采用非阻塞式的方法</p>
+</li>
+<li><p>内核准备好数据之后，会发送一个signal或执行一个基于线程的回调函数来完成这次 IO 处理过程，告诉进程read操作完成了</p>
+</li>
+</ul>
+<h2 id="1-1-阻塞-非阻塞I-O"><a href="#1-1-阻塞-非阻塞I-O" class="headerlink" title="1.1 阻塞&#x2F;非阻塞I&#x2F;O"></a>1.1 阻塞&#x2F;非阻塞I&#x2F;O</h2><h3 id="1-1-1-read-write"><a href="#1-1-1-read-write" class="headerlink" title="1.1.1 read&#x2F;write"></a>1.1.1 read&#x2F;write</h3><ul>
+<li><p>由Linux操作系统直接提供的基础IO方式是<code>read/write</code>两个系统调用接口，默认状态下这两个接口都是阻塞方式的。如果在打开文件的时候配置了<code>O_NONBLOCK</code>参数，这个文件描述符的<code>read/write</code>将变成非阻塞方式，调用之后会立刻返回。</p>
+</li>
+<li><p>读数据时，需要提供一段用户空间的空闲内存，然后进入内核态进行文件读取，先检查内核的缓冲区有没有需要的数据，如果已经缓存了，那么就直接从缓存中返回；否则从磁盘中读取，然后缓存在内核的缓存中。</p>
+</li>
+<li><p>写操作时，将数据从用户空间复制到内核空间的缓存中，这时对用户程序来说写操作就已经完成，至于什么时候再写到磁盘中由操作系统决定，除非显示地调用了sync同步命令。</p>
+</li>
+<li><p>在内核中用来缓存从磁盘读出的数据或者写入数据的是PageCache：</p>
+<ul>
+<li><p>PageCache提供预读功能来加快磁盘访问的性能；</p>
+</li>
+<li><p>同时内核的 I&#x2F;O 调度算法会缓存尽可能多的 I&#x2F;O 请求在 PageCache 中，最后「<strong>合并</strong>」成一个更大的 I&#x2F;O 请求再发给磁盘，这样做是为了减少磁盘的寻址操作；</p>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="1-1-2-fread-fwrite"><a href="#1-1-2-fread-fwrite" class="headerlink" title="1.1.2 fread&#x2F;fwrite"></a>1.1.2 fread&#x2F;fwrite</h3><ul>
+<li><p>这个是C标准库中提供的文件接口，对<code>read/write</code>的进一步封装，在用户空间中又分配了一块内存用于缓冲用户的读写调用。</p>
+</li>
+<li><p>相较于每次都是系统调用的<code>read/write</code>，<code>fread/fwrite</code>可以先将用户的请求缓存到用户态下。然后收集到一部分的请求之后统一调用一次<code>read/write</code>系统调用，从而降低系统调用切换用户态和内核态带来的开销。</p>
+</li>
+<li><p>如果使用了<code>fread/fwrite</code>写入操作可能被缓存在用户态，如果进程崩溃也有可能造成数据的丢失；但使用<code>read/write</code>的程序因为写入数据被直接写入到内核态，及时进程崩溃内核中依然可以保留以写入的数据。</p>
+</li>
+</ul>
+<h3 id="1-1-3-direct-I-O"><a href="#1-1-3-direct-I-O" class="headerlink" title="1.1.3 direct I&#x2F;O"></a>1.1.3 direct I&#x2F;O</h3><ul>
+<li><p>如果在打开文件的时候配置了<code>O_DIRECT</code>参数，这个文件将被打开用于直接I&#x2F;O</p>
+</li>
+<li><p>应用程序直接读写文件，而不经过内核缓冲区，也就是绕过内核缓冲区，自己管理IO缓存区，这样做的目的是减少一次内核缓冲区到用户程序缓存的数据复制。</p>
+</li>
+</ul>
+<h3 id="1-1-4-mmap"><a href="#1-1-4-mmap" class="headerlink" title="1.1.4 mmap"></a>1.1.4 mmap</h3><ul>
+<li><p>mmap 是一种内存映射文件的方法，即将一个文件或者其它对象映射到进程的地址空间，实现文件磁盘地址和进程虚拟地址空间中一段虚拟地址的一一对映关系。</p>
+</li>
+<li><p>实现这样的映射关系后，进程就可以采用指针的方式读写操作这一段内存，而系统会自动回写脏页面到对应的文件磁盘上，即完成了对文件的操作而不必再调用 read、write 等系统调用函数。</p>
+</li>
+<li><p>在mmap之后，并没有在将文件内容加载到物理页上，只上在虚拟内存中分配了地址空间。当进程在访问这段地址时（通过mmap在写入或读取时），若虚拟内存对应的page没有在物理内存中缓存，则产生”缺页”，由内核的缺页异常处理程序处理，将文件对应内容，以页为单位(4K)加载到物理内存，注意是只加载缺页，但也会存在预读。</p>
+</li>
+<li><p>因此是通过“缺页”异常来读取硬盘数据的，所以本质来说这是个阻塞同步I&#x2F;O</p>
+</li>
+</ul>
+<h2 id="1-2-多路复用I-O"><a href="#1-2-多路复用I-O" class="headerlink" title="1.2 多路复用I&#x2F;O"></a>1.2 多路复用I&#x2F;O</h2><ul>
+<li>主要是用来处理网络socket读写的，让单线程可以同时处理多个socket连接的系统调用</li>
+</ul>
+<p><strong>问题</strong></p>
+<ul>
+<li><p>服务器可承载的最大连接数，主要会受两个方面的限制：</p>
+<ul>
+<li><p><strong>文件描述符</strong>，Socket 实际上是一个文件，也就会对应一个文件描述符。在 Linux 下，单个进程打开的文件描述符数是有限制的，没有经过修改的值一般都是 1024，不过我们可以通过 ulimit 增大文件描述符的数目；</p>
+</li>
+<li><p><strong>系统内存</strong>，每个 TCP 连接在内核中都有对应的数据结构，意味着每个连接都是会占用一定内存的，如果每个连接都需要绑定一个线程来处理，那应该很快就会触及资源上线。</p>
+</li>
+</ul>
+</li>
+<li><p>无论是单进程绑定一个socket还是单线程去绑定一个socket都是没法达到C10K的（并发1万请求），因此需要多路复用系统调用，单个进程&#x2F;线程可以通过一个系统调用函数从内核中获取多个事件。</p>
+</li>
+</ul>
+<h3 id="1-2-1-select"><a href="#1-2-1-select" class="headerlink" title="1.2.1 select"></a>1.2.1 select</h3><ul>
+<li><p>将已连接的 Socket 都放到一个文件描述符集合，然后调用 select 函数将文件描述符集合拷贝到内核里，让内核来检查是否有网络事件产生。</p>
+</li>
+<li><p>文件描述符集合由fd_set表示（其实这是一个数组的宏定义，实际上是一long类型的数组，每一个数组元素都能与一打开的文件句柄socket、文件、管道、设备等建立联系），而且所支持的文件描述符的个数是有限制的，在 Linux 系统中，由内核中的 FD_SETSIZE 限制， 默认最大值为 <code>1024</code>，只能监听 0~1023 的文件描述符。</p>
+</li>
+<li><p>检查的方式很粗暴，就是遍历文件描述符集合，即轮询（内核来做这个轮询操作），效率较低。当检查到有事件产生后，将此 Socket 标记为可读或可写， 接着再把整个文件描述符集合拷贝回用户态里。因此一次select的调用到返回需要两次copy文件描述符集合。</p>
+</li>
+<li><p>select返回之后，调用者仅知道有I&#x2F;O事件发生，却不知哪几个流，只会无差异轮询所有流，找出能读&#x2F;写数据的流进行操作。寻找可以读写的socket的时间复杂度是<code>O(n)</code>。</p>
+</li>
+</ul>
+<h3 id="1-2-2-poll"><a href="#1-2-2-poll" class="headerlink" title="1.2.2 poll"></a>1.2.2 poll</h3><ul>
+<li><p>和select类似，只是描述fd集合的方式不同，poll使用<code>pollfd</code>结构而非select的<code>fd_set</code>结构。突破了 select 的文件描述符个数限制。</p>
+</li>
+<li><p>管理多个描述符也是进行轮询，根据描述符的状态进行处理。poll和select一样有大量文件描述符的数组被整体复制于用户态和内核的地址空间之间，而不论这些文件描述符是否就绪，其开销也随着文件描述符数量增加而线性增大。</p>
+</li>
+<li><p>返回到用户态之后也需要通过遍历的方式查找哪些socket是准备好了的。时间复杂度为<code>O(n)</code>。</p>
+</li>
+</ul>
+<h3 id="1-2-3-epoll"><a href="#1-2-3-epoll" class="headerlink" title="1.2.3 epoll"></a>1.2.3 epoll</h3><ul>
+<li>epoll模型修改主动轮询为被动通知，当有事件发生时，被动接收通知。所以epoll模型注册套接字后，主程序可做其他事情，当事件发生时，接收到通知后再去处理。</li>
+</ul>
+<div style="text-align:center;">
+    <img src="epoll.webp" srcset="/img/loading.gif" lazyload alt="" width="452" height="209" class="jop-noMdConv">
+</div>
+
+<ul>
+<li><p>epoll 在内核里使用红黑树来跟踪进程所有待检测的文件描述字，把需要监控的 socket 通过 <code>epoll_ctl()</code> 函数加入内核中的红黑树里，红黑树是个高效的数据结构，增删改一般时间复杂度是 <code>O(logn)</code>。</p>
+</li>
+<li><p>而 select&#x2F;poll 内核里没有类似 epoll 红黑树这种保存所有待检测的 socket 的数据结构，所以 select&#x2F;poll 每次操作时都传入整个 socket 集合给内核，而 epoll 因为在内核维护了红黑树，可以保存所有待检测的 socket ，所以只需要传入一个待检测的 socket，减少了内核和用户空间大量的数据拷贝和内存分配。</p>
+</li>
+<li><p>epoll 使用事件驱动的机制，内核里维护了一个链表来记录就绪事件，当某个 socket 有事件发生时，通过回调函数内核会将其加入到这个就绪事件列表中，当用户调用 <code>epoll_wait()</code> 函数时，只会返回有事件发生的文件描述符的个数，不需要像 select&#x2F;poll 那样轮询扫描整个 socket 集合，大大提高了检测的效率。所以用户程序在获得准备好的socket时的复杂度是<code>O(1)</code></p>
+</li>
+</ul>
+<p><strong>边缘触发和水平触发</strong></p>
+<ul>
+<li><p>使用<strong>边缘触发</strong>模式时，当被监控的 Socket 描述符上有可读事件发生时，服务器端只会从 epoll_wait 中苏醒一次，即使进程没有调用 read 函数从内核读取数据，也依然只苏醒一次，因此我们程序要保证一次性将内核缓冲区的数据读取完；</p>
+</li>
+<li><p>使用<strong>水平触发</strong>模式时，当被监控的 Socket 上有可读事件发生时，服务器端不断地从 epoll_wait 中苏醒，直到内核缓冲区数据被 read 函数读完才结束，目的是告诉我们有数据需要读取；</p>
+</li>
+<li><p>简单总结一下就是，边缘触发是针对事件到达触发的，socket从没有数据到数据准备好这个状态变化会发生一次边缘触发，因此在后续读取socket中已经准备好的数据时要尽量多读写数据，以免错失读写的机会。因此，我们会循环从文件描述符读写数据，那么如果文件描述符是阻塞的，没有数据可读写时，进程会阻塞在读写函数那里，程序就没办法继续往下执行。所以，边缘触发模式一般和非阻塞 I&#x2F;O 搭配使用，程序会一直执行 I&#x2F;O 操作，直到系统调用（如 <code>read</code> 和 <code>write</code>）返回错误，错误类型为 <code>EAGAIN</code> 或 <code>EWOULDBLOCK</code>。</p>
+</li>
+<li><p>select&#x2F;poll 只有水平触发模式，epoll 默认的触发模式是水平触发，但是可以根据应用场景设置为边缘触发模式。</p>
+</li>
+</ul>
+<h2 id="1-3-信号驱动I-O"><a href="#1-3-信号驱动I-O" class="headerlink" title="1.3 信号驱动I&#x2F;O"></a>1.3 信号驱动I&#x2F;O</h2><ul>
+<li><p>预先在内核中设置一个回调函数，当某个事件发生时，内核使用信号（SIGIO）通知进程来处理（运行回调函数）。 它也可以看成是一种异步IO，因为检测fd是否有数据和是否可读写是在两个流程中做的。</p>
+</li>
+<li><p>优势是进程没有收到SIGIO信号之前，不被阻塞，可以做其他事情。劣势是当数据量变大时，信号产生太频繁，性能会非常低。</p>
+</li>
+<li><p>信号驱动 I&#x2F;O 提供的是边缘触发通知，即只有当 I&#x2F;O 事件发生时我们才会收到通知，且当文件描述符收到 I&#x2F;O 事件通知时，并不知道要处理多少 I&#x2F;O 数据。因此和边缘触发模式的epoll一样需要配合非阻塞I&#x2F;O使用。</p>
+</li>
+</ul>
+<h2 id="1-4-异步I-O"><a href="#1-4-异步I-O" class="headerlink" title="1.4 异步I&#x2F;O"></a>1.4 异步I&#x2F;O</h2><ul>
+<li><p>如果使用非直接I&#x2F;O的方式，每次需要用户线程从内核态内存中拷贝数据到用户态内存，因为内存访问速度相对较快，并不会带来较大的性能瓶颈。</p>
+</li>
+<li><p>但如果我们使用DIRECT模式，每次都需要直接与磁盘交互，同步IO在数据拷贝阶段的等待会非常长。因此我们需要一种异步IO的机制，让进程去做别的工作，在IO的数据拷贝完成后再通知进程。</p>
+</li>
+</ul>
+<h3 id="1-4-1-kernel-aio"><a href="#1-4-1-kernel-aio" class="headerlink" title="1.4.1 kernel aio"></a>1.4.1 kernel aio</h3><ul>
+<li><p>大概流程是用户通过 <code>io_submit()</code> 提交 I&#x2F;O 请求，过一会再调用 <code>io_getevents()</code> 阻塞等待event事件完成，另外linux aio也支持了epoll。（普通文件的IO无法使用epoll来监视，因为ext4格式文件未实现 poll 方法，但是使用aio之后就可以用epoll来监视了）</p>
+</li>
+<li><p>只支持 <code>O_DIRECT</code> 文件，因此对常规的非数据库应用几乎是无用的。虽然从技术上说接口是非阻塞的，但实际上有很多可能的原因都会导致它阻塞，而且引发的方式难以预料。</p>
+</li>
+</ul>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-meta">#<span class="hljs-keyword">define</span> _GNU_SOURCE</span><br><span class="hljs-comment">//  sudo apt-get install libaio-dev</span><br><span class="hljs-comment">//  gcc -static aio.c -o aio -laio</span><br><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;stdlib.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;string.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;libaio.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;errno.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;stdio.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;unistd.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;fcntl.h&gt;</span></span><br><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> FILEPATH <span class="hljs-string">&quot;./aio.txt&quot;</span></span><br><br><span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">main</span><span class="hljs-params">()</span></span><br><span class="hljs-function"></span>&#123;<br>    <span class="hljs-type">io_context_t</span> context;<br>    <span class="hljs-keyword">struct</span> <span class="hljs-title class_">iocb</span> io[<span class="hljs-number">1</span>], *p[<span class="hljs-number">1</span>] = &#123;&amp;io[<span class="hljs-number">0</span>]&#125;;<br>    <span class="hljs-keyword">struct</span> <span class="hljs-title class_">io_event</span> e[<span class="hljs-number">1</span>];<br>    <span class="hljs-type">unsigned</span> nr_events = <span class="hljs-number">10</span>;<br>    <span class="hljs-keyword">struct</span> <span class="hljs-title class_">timespec</span> timeout;<br>    <span class="hljs-type">char</span> *wbuf;<br>    <span class="hljs-type">int</span> wbuflen = <span class="hljs-number">1024</span>;<br>    <span class="hljs-type">int</span> ret, num = <span class="hljs-number">0</span>, i;<br><br>    <span class="hljs-built_in">posix_memalign</span>((<span class="hljs-type">void</span> **)&amp;wbuf, <span class="hljs-number">512</span>, wbuflen);<br><br>    <span class="hljs-built_in">memset</span>(wbuf, <span class="hljs-string">&#x27;@&#x27;</span>, wbuflen);<br>    <span class="hljs-built_in">memset</span>(&amp;context, <span class="hljs-number">0</span>, <span class="hljs-built_in">sizeof</span>(<span class="hljs-type">io_context_t</span>));<br><br>    timeout.tv_sec = <span class="hljs-number">0</span>;<br>    timeout.tv_nsec = <span class="hljs-number">10000000</span>;<br><br>    <span class="hljs-type">int</span> fd = <span class="hljs-built_in">open</span>(FILEPATH, O_CREAT|O_RDWR|O_DIRECT, <span class="hljs-number">0644</span>); <span class="hljs-comment">// 1. 打开要进行异步IO的文件</span><br>    <span class="hljs-keyword">if</span> (fd &lt; <span class="hljs-number">0</span>) &#123;<br>        <span class="hljs-built_in">printf</span>(<span class="hljs-string">&quot;open error: %d\n&quot;</span>, errno);<br>        <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>    &#125;<br><br>    <span class="hljs-keyword">if</span> (<span class="hljs-number">0</span> != <span class="hljs-built_in">io_setup</span>(nr_events, &amp;context)) &#123;               <span class="hljs-comment">// 2. 创建一个异步IO上下文</span><br>        <span class="hljs-built_in">printf</span>(<span class="hljs-string">&quot;io_setup error: %d\n&quot;</span>, errno);<br>        <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>    &#125;<br><br>    <span class="hljs-built_in">io_prep_pwrite</span>(&amp;io[<span class="hljs-number">0</span>], fd, wbuf, wbuflen, <span class="hljs-number">0</span>);           <span class="hljs-comment">// 3. 创建一个异步IO任务</span><br><br>    <span class="hljs-keyword">if</span> ((ret = <span class="hljs-built_in">io_submit</span>(context, <span class="hljs-number">1</span>, p)) != <span class="hljs-number">1</span>) &#123;            <span class="hljs-comment">// 4. 提交异步IO任务</span><br>        <span class="hljs-built_in">printf</span>(<span class="hljs-string">&quot;io_submit error: %d\n&quot;</span>, ret);<br>        <span class="hljs-built_in">io_destroy</span>(context);<br>        <span class="hljs-keyword">return</span> <span class="hljs-number">-1</span>;<br>    &#125;<br><br>    <span class="hljs-keyword">while</span> (<span class="hljs-number">1</span>) &#123;<br>        ret = <span class="hljs-built_in">io_getevents</span>(context, <span class="hljs-number">1</span>, <span class="hljs-number">1</span>, e, &amp;timeout);     <span class="hljs-comment">// 5. 获取异步IO的结果</span><br>        <span class="hljs-keyword">if</span> (ret &lt; <span class="hljs-number">0</span>) &#123;<br>            <span class="hljs-built_in">printf</span>(<span class="hljs-string">&quot;io_getevents error: %d\n&quot;</span>, ret);<br>            <span class="hljs-keyword">break</span>;<br>        &#125;<br><br>        <span class="hljs-keyword">if</span> (ret &gt; <span class="hljs-number">0</span>) &#123;<br>            <span class="hljs-built_in">printf</span>(<span class="hljs-string">&quot;result, res2: %d, res: %d\n&quot;</span>, e[<span class="hljs-number">0</span>].res2, e[<span class="hljs-number">0</span>].res);<br>            <span class="hljs-keyword">break</span>;<br>        &#125;<br>    &#125;<br><br>    <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>其实Linux IO的“异步”其实比“同步”更好实现，因为它底层调用的那些提交IO的接口本身就是异步的，比如vfs层通过submit_bio提交一个io请求，这个过程本身就是异步的，只不是传统的同步写入中，会等待IO完成才返回， 而aio中调用之后就直接返回了，通过回调来通知请求完成。这就是AIO的总体逻辑。</li>
+</ul>
+<h3 id="1-4-2-posix-aio"><a href="#1-4-2-posix-aio" class="headerlink" title="1.4.2 posix aio"></a>1.4.2 posix aio</h3><ul>
+<li><p>kernel aio是Linux提供的一些内核函数来支持异步IO，性能很好，但是没有可移植性。</p>
+</li>
+<li><p>posix aio是c标准库 glibc 中，基于posix接口规范，在用户态用多线程实现的一个aio。它的优点是可移植性好，在满足posix规范的平台上基本上都能跑，缺点是基于多线程实现的性能较差，而且受限于线程池的大小，可能出现任务积压影响IO速度。</p>
+</li>
+<li><p>很多方式可以判断 posix aio 任务的结束，和 kernel aio 一样，也是有办法通过 epoll 来监视异步IO任务的。</p>
+</li>
+</ul>
+<h3 id="1-4-3-io-uring"><a href="#1-4-3-io-uring" class="headerlink" title="1.4.3 io_uring"></a>1.4.3 io_uring</h3><blockquote>
+<p>参考资料：</p>
+<p><a target="_blank" rel="noopener" href="https://arthurchiao.art/blog/intro-to-io-uring-zh/#15-%E5%BC%82%E6%AD%A5-ioaio">Linux 异步 I&#x2F;O 框架 io_uring</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.bilibili.com/video/BV1JB4y1R7QY">阿里云的 Linux 内核 io_uring 介绍与实践</a></p>
+</blockquote>
+<p><strong>此前aio实现的问题</strong></p>
+<ol>
+<li><p>虽然是异步实现，但系统调用非常多在更高负载的场景性能并不好</p>
+</li>
+<li><p>并不总是异步的，在很多地方都可能造成阻塞等待</p>
+</li>
+<li><p>仅支持<code>O_DIRECT</code>，目前只有数据库领域大量使用这样的接口调用，而在绝大部分的场景都是buffered I&#x2F;O使用更多</p>
+</li>
+<li><p>请求元数据开销很大，尤其是对较小的I&#x2F;O请求元数据比读写数据更大</p>
+</li>
+<li><p>对iopoll的支持方式不好。处理I&#x2F;O请求的方式主要有两种，一个是通过中断告诉应用程序，而另一种就是应用程序主动轮询去查找I&#x2F;O请求是否完成，随着设备越来越快， 中断驱动（interrupt-driven）模式效率已经低于轮询模式 （polling for completions）</p>
+</li>
+</ol>
+<p><strong>io_uring的优势</strong></p>
+<ol>
+<li><p>仅使用简单强大的三个系统调用：</p>
+<ul>
+<li><p>io_uring_setup，用于设置 io_uring 上下文</p>
+</li>
+<li><p>io_uring_enter，提交并获取完成任务</p>
+</li>
+<li><p>io_uring_register，注册内核用户共享的缓冲区</p>
+</li>
+</ul>
+</li>
+<li><p>通用型非常强，提供内核统一的异步编程框架，支持任何类型的I&#x2F;O (cached files、direct-access files、blocking sockets)，同时也支持类epoll型编程。</p>
+</li>
+<li><p>有更加丰富的特性，支持很多高级特性。同时IO请求带来的overhead比较小，高性能。</p>
+</li>
+</ol>
+<p><strong>基本结构</strong></p>
+<ul>
+<li><p>在设计上是真正异步的（truly asynchronous）。只要设置了合适的flag，它在系统调用上下文中就只是将请求放入队列， 不会做其他任何额外的事情，保证了应用永远不会阻塞。支持任何类型的 I&#x2F;O：cached files、direct-access files 甚至 blocking sockets。</p>
+</li>
+<li><p>由于设计上就是异步的（async-by-design nature），因此无需 poll+read&#x2F;write 来处理 sockets。 只需提交一个阻塞式读（blocking read），请求完成之后，就会出现在 completion ring。</p>
+</li>
+</ul>
+<div style="text-align:center;">
+    <img src="uring.png" srcset="/img/loading.gif" lazyload alt="uring.png" width="426" height="246" class="jop-noMdConv">
+</div>
+
+<ul>
+<li><p>每个 io_uring 实例都有<strong>两个环形队列</strong>（ring），在内核和应用程序之间共享。因为这两个队列是共享的，完全可以做到用户态线程添加任务和获取完成的任务两个操作都不需要系统调用：</p>
+<ul>
+<li><p><strong>提交队列</strong>：submission queue (SQ)</p>
+</li>
+<li><p><strong>完成队列</strong>：completion queue (CQ)</p>
+</li>
+</ul>
+</li>
+<li><p>都是单生产者、单消费者，所以每个环形队列都是两个线程在竞争使用，提供无锁接口（lock-less access interface），内部使用内存屏障做同步（coordinated with memory barriers）。</p>
+</li>
+</ul>
+<p><strong>重要特性</strong></p>
+<ul>
+<li><p>IORING_SETUP_SQPOLL：创建一个内核线程来进行sqe的提交，几乎完全消除用户态内核态的上下文切换。并真正得将IO逻辑offload，业务逻辑和IO逻辑完全分离。</p>
+</li>
+<li><p>IORING_SETUP_IOPOLL：配合blk_mq多类型硬件队列映射机制，利用这个特性内核io协议栈开始真正支持iopoll</p>
+</li>
+<li><p>IORING_FEAT_FAST_POLL：网络编程环境下使用的，类似于epoll这样的接口，但是不再需要用户程序做数据的拷贝工作，性能会更优。</p>
+</li>
+</ul>
+<p><strong>中断驱动模式</strong>（interrupt driven）</p>
+<ul>
+<li>默认模式，可通过 io_uring_enter() 提交 I&#x2F;O 请求SQE，然后通过<code>io_uring_wait_cqe</code>等待完成IO请求的CQE。</li>
+</ul>
+<p><strong>轮询模式</strong>（polled）</p>
+<ul>
+<li><p>Busy-waiting for an I&#x2F;O completion，而不是通过异步 IRQ（Interrupt Request）接收通知。</p>
+</li>
+<li><p>这种模式需要文件系统和块设备（block device）支持轮询功能。 相比中断驱动方式延迟更低（连系统调用都省了）， 但可能会消耗更多 CPU 资源。</p>
+</li>
+<li><p>目前，只有指定了 O_DIRECT flag 打开的文件描述符，才能使用这种模式。当一个读 或写请求提交给轮询上下文（polled context）之后，应用（application）必须调用 <code>io_uring_enter()</code> 来轮询 CQ 队列，判断请求是否已经完成。</p>
+</li>
+</ul>
+<p><strong>内核轮询模式</strong>（kernel polled）</p>
+<ul>
+<li><p>创建一个内核线程（kernel thread）来执行 SQ 的轮询工作。</p>
+</li>
+<li><p>使用这种模式的 io_uring 实例，应用无需切到到内核态就能触发I&#x2F;O 操作。 通过 SQ 来提交 SQE，以及监控 CQ 的完成状态，应用无需任何系统调用，就能提交和收割 I&#x2F;O（submit and reap I&#x2F;Os）。</p>
+</li>
+<li><p>如果内核线程的空闲时间超过了用户的配置值，它会通知应用，然后进入 idle 状态。 这种情况下，应用必须调用 <code>io_uring_enter()</code> 来唤醒内核线程。如果 I&#x2F;O 一直很繁忙，内核线性是不会 sleep 的。</p>
+</li>
+</ul>
+<h1 id="二、零拷贝"><a href="#二、零拷贝" class="headerlink" title="二、零拷贝"></a>二、零拷贝</h1><h2 id="2-1-传统文件传输"><a href="#2-1-传统文件传输" class="headerlink" title="2.1 传统文件传输"></a>2.1 传统文件传输</h2><div style="text-align:center;">
+    <img src="传统文件传输.webp" srcset="/img/loading.gif" lazyload alt="传统文件传输.webp" width="380" height="234" class="jop-noMdConv">
+</div>
+
+<ul>
+<li><p>将磁盘上的文件读取出来，然后通过网络协议发送给客户端。</p>
+</li>
+<li><p>发生了 4 次用户态与内核态的上下文切换，还发生了 4 次数据拷贝，其中两次是 DMA 的拷贝，另外两次则是通过 CPU 拷贝的。</p>
+</li>
+<li><p>要想提高文件传输的性能，就需要减少「用户态与内核态的上下文切换」和「内存拷贝」的次数</p>
+</li>
+</ul>
+<h2 id="2-1-mmap优化"><a href="#2-1-mmap优化" class="headerlink" title="2.1 mmap优化"></a>2.1 mmap优化</h2><div style="text-align:center;">
+    <img src="mmap + write 零拷贝.webp" srcset="/img/loading.gif" lazyload alt="mmap + write 零拷贝.webp" width="373" height="230">
+</div>
+
+<ul>
+<li><p><code>mmap()</code> 系统调用函数会直接把内核缓冲区里的数据「<strong>映射</strong>」到用户空间，操作系统内核与用户空间就不需要再进行任何的数据拷贝操作。</p>
+</li>
+<li><p>减少一次数据拷贝的过程，仍然需要通过 CPU 把内核缓冲区的数据拷贝到 socket 缓冲区里，而且仍然需要 4 次上下文切换。</p>
+</li>
+</ul>
+<h2 id="2-2-sendfile"><a href="#2-2-sendfile" class="headerlink" title="2.2 sendfile"></a>2.2 sendfile</h2><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;sys/socket.h&gt;</span></span><br><span class="hljs-function"><span class="hljs-type">ssize_t</span> <span class="hljs-title">sendfile</span><span class="hljs-params">(<span class="hljs-type">int</span> out_fd, <span class="hljs-type">int</span> in_fd, <span class="hljs-type">off_t</span> *offset, <span class="hljs-type">size_t</span> count)</span></span>;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li><p>前两个参数分别是目的端和源端的文件描述符，后面两个参数是源端的偏移量和复制数据的长度，返回值是实际复制数据的长度。</p>
+</li>
+<li><p>替代前面的 <code>read()</code> 和 <code>write()</code> 这两个系统调用，这样就可以减少一次系统调用，也就减少了 2 次上下文切换的开销。但依然是三次数据拷贝，不是真正的零拷贝技术。</p>
+</li>
+</ul>
+<div style="text-align:center;">
+    <img src="sendfile-零拷贝.webp" srcset="/img/loading.gif" lazyload alt="sendfile-零拷贝.webp" width="404" height="239" class="jop-noMdConv">
+</div>
+
+<ul>
+<li><p>如果网卡支持 SG-DMA（<em>The Scatter-Gather Direct Memory Access</em>）技术（和普通的 DMA 有所不同），我们可以进一步减少通过 CPU 把内核缓冲区里的数据拷贝到 socket 缓冲区的过程。</p>
+</li>
+<li><p>所谓的零拷贝（<em>Zero-copy</em>）技术，因为我们没有在内存层面去拷贝数据，也就是说全程没有通过 CPU 来搬运数据，所有的数据都是通过 DMA 来进行传输的。</p>
+</li>
+<li><p>零拷贝技术的文件传输方式相比传统文件传输的方式，只需要 2 次上下文切换和数据拷贝次数，就可以完成文件的传输，而且 2 次的数据拷贝过程，都不需要通过 CPU，2 次都是由 DMA 来搬运。</p>
+</li>
+</ul>
+<p><strong>应用案例</strong></p>
+<ul>
+<li><p><code>Kafka</code>文件传输最终它调用了 Java NIO 库里的 <code>transferTo</code> 方法，如果 Linux 系统支持 <code>sendfile()</code> 系统调用，那么 <code>transferTo()</code> 实际上最后就会使用到 <code>sendfile()</code> 系统调用函数。</p>
+</li>
+<li><p><code>Nginx</code>也支持零拷贝技术，一般默认是开启零拷贝技术，这样有利于提高文件传输的效率。</p>
+</li>
+</ul>
+<h1 id="三、网络模式"><a href="#三、网络模式" class="headerlink" title="三、网络模式"></a>三、网络模式</h1><ul>
+<li><p>市面上常见的开源软件很多都采用了这个方案，比如 Redis、Nginx、Netty 等等</p>
+</li>
+<li><p>基于面向对象的思想，对 I&#x2F;O 多路复用作了一层封装，让使用者不用考虑底层网络 API 的细节，只需要关注应用代码的编写。</p>
+</li>
+<li><p>Reactor 模式也叫 <code>Dispatcher</code> 模式，我觉得这个名字更贴合该模式的含义，即 I&#x2F;O 多路复用监听事件，收到事件后，根据事件类型分配（Dispatch）给某个进程 &#x2F; 线程。</p>
+</li>
+</ul>
+<h2 id="3-1-Reactor"><a href="#3-1-Reactor" class="headerlink" title="3.1 Reactor"></a>3.1 Reactor</h2><p><strong>组成</strong></p>
+<ul>
+<li><p>Reactor 模式主要由 Reactor 和处理资源池这两个核心部分组成，它俩负责的事情如下：</p>
+<ul>
+<li><p>Reactor 负责监听和分发事件，事件类型包含连接事件、读写事件；</p>
+</li>
+<li><p>处理资源池负责处理事件，如 read -&gt; 业务逻辑 -&gt; send；</p>
+</li>
+</ul>
+</li>
+<li><p>Reactor 模式是灵活多变的，Reactor 的数量可以只有一个，也可以有多个；处理资源池可以是单个进程 &#x2F; 线程，也可以是多个进程 &#x2F;线程；</p>
+</li>
+</ul>
+<p><strong>单Reactor 单进程&#x2F;线程</strong></p>
+<div style="text-align:center;">
+    <img src="单Reactor单进程.webp" srcset="/img/loading.gif" lazyload alt="单Reactor单进程.webp" width="469" height="274" class="jop-noMdConv">
+</div>
+
+<ul>
+<li><p>进程里有 <strong>Reactor、Acceptor、Handler</strong> 这三个对象：Reactor 对象的作用是监听和分发事件；Acceptor 对象的作用是获取连接；Handler 对象的作用是处理业务。select、accept、read、send 是系统调用函数，dispatch 和 「业务处理」是需要完成的操作，其中 dispatch 是分发事件操作。</p>
+</li>
+<li><p>代码流程大概是：</p>
+<ul>
+<li><p>Reactor 对象通过 select （IO 多路复用接口） 监听事件，收到事件后通过 dispatch 进行分发，具体分发给 Acceptor 对象还是 Handler 对象，还要看收到的事件类型；</p>
+</li>
+<li><p>如果是连接建立的事件，则交由 Acceptor 对象进行处理，Acceptor 对象会通过 accept 方法 获取连接，并创建一个 Handler 对象来处理后续的响应事件；</p>
+</li>
+<li><p>如果不是连接建立事件， 则交由当前连接对应的 Handler 对象来进行响应；</p>
+</li>
+<li><p>Handler 对象通过 read -&gt; 业务处理 -&gt; send 的流程来完成完整的业务流程。</p>
+</li>
+</ul>
+</li>
+<li><p>全部工作都在同一个进程内完成，所以实现起来比较简单，不需要考虑进程间通信，也不用担心多进程竞争。但因为只有一个进程，无法充分利用多核CPU的性能，Handler 对象在业务处理时，整个进程是无法处理其他连接的事件的，如果业务处理耗时比较长，那么就造成响应的延迟。</p>
+</li>
+<li><p>单Reactor 单进程的方案不适用计算机密集型的场景，只适用于业务处理非常快速的场景。因为 Redis 业务处理主要是在内存中完成，操作的速度是很快的，性能瓶颈不在 CPU 上，所以 Redis 对于命令的处理是单进程的方案。</p>
+</li>
+</ul>
+<p><strong>单Reactor 多线程&#x2F;多进程</strong></p>
+<div style="text-align:center;">
+    <img src="单Reactor多线程.webp" srcset="/img/loading.gif" lazyload alt="单Reactor多线程.webp" width="468" height="395" class="jop-noMdConv">
+</div>
+
+<ul>
+<li><p>Handler对象不再负责业务处理，只负责数据的接收和发送，Handler对象通过read读取到数据后，会将数据发给子线程里的 Processor 对象进行业务处理；</p>
+</li>
+<li><p>子线程里的 Processor 对象就进行业务处理，处理完后将结果发给主线程中的 Handler 对象，接着由 Handler 通过 send 方法将响应结果发送给 client。</p>
+</li>
+<li><p>优势在于能够充分利用多核 CPU 的能，但是带来了多线程竞争资源的问题。例如子线程完成业务处理后，要把结果传递给主线程的 Handler 进行发送，这里涉及共享数据的竞争。另外因为一个 Reactor 对象承担所有事件的监听和响应，而且只在主线程中运行，在面对瞬间高并发的场景时，容易成为性能的瓶颈的地方。</p>
+</li>
+</ul>
+<p><strong>多Reactor 多进程&#x2F;线程</strong></p>
+<div style="text-align:center;">
+    <img src="主从Reactor多线程.webp" srcset="/img/loading.gif" lazyload alt="主从Reactor多线程.webp" width="484" height="345" class="jop-noMdConv">
+</div>
+
+<ul>
+<li><p>主线程中的 MainReactor 对象通过 select 监控连接建立事件，收到事件后通过 Acceptor 对象中的 accept 获取连接，将新的连接分配给某个子线程；</p>
+</li>
+<li><p>子线程中的 SubReactor 对象将 MainReactor 对象分配的连接加入 select 继续进行监听，并创建一个 Handler 用于处理连接的响应事件。</p>
+</li>
+<li><p>如果有新的事件发生时，SubReactor 对象会调用当前连接对应的 Handler 对象来进行响应。Handler 对象通过 read -&gt; 业务处理 -&gt; send 的流程来完成完整的业务流程。</p>
+</li>
+<li><p>大名鼎鼎的两个开源软件 Netty 和 Memcache 都采用了「多 Reactor 多线程」的方案。采用了「多 Reactor 多进程」方案的开源软件是 Nginx，不过方案与标准的多 Reactor 多进程有些差异。</p>
+</li>
+</ul>
+<h2 id="3-2-Proactor"><a href="#3-2-Proactor" class="headerlink" title="3.2 Proactor"></a>3.2 Proactor</h2><ul>
+<li><p>Proactor采用了异步I&#x2F;O技术，所以被称为异步网络模型。无论是 Reactor，还是 Proactor，都是一种基于「事件分发」的网络编程模式，区别在于Reactor 模式是基于「待完成」的 I&#x2F;O 事件，而 Proactor 模式则是基于「已完成」的 I&#x2F;O 事件。</p>
+</li>
+<li><p><strong>Reactor 是非阻塞同步网络模式，感知的是就绪可读写事件</strong>。在每次感知到有事件发生（比如可读就绪事件）后，就需要应用进程主动调用 read 方法来完成数据的读取，也就是要应用进程主动将 socket 接收缓存中的数据读到应用进程内存中，这个过程是同步的，读取完数据后应用进程才能处理数据。</p>
+</li>
+<li><p><strong>Proactor 是异步网络模式， 感知的是已完成的读写事件</strong>。在发起异步读写请求时，需要传入数据缓冲区的地址（用来存放结果数据）等信息，这样系统内核才可以自动帮我们把数据的读写工作完成，这里的读写工作全程由操作系统来做，并不需要像 Reactor 那样还需要应用进程主动发起 read&#x2F;write 来读写数据，操作系统完成读写工作后，就会通知应用进程直接处理数据。</p>
+</li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/Linux/" class="category-chain-item">Linux</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/Linux/" class="print-no-link">#Linux</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>Linux:文件IO</div>
+      <div>https://github.com/2024/05/12/Linux-文件IO/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>Lluvia Luo</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2024年5月12日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2024/05/12/Linux-%E5%90%8C%E6%AD%A5%E4%B8%8E%E9%94%81/" title="Linux:同步与锁">
+                        <span class="hidden-mobile">Linux:同步与锁</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"GYXWwiquLells7Jk5YnXDL14-gzGzoHsz","appKey":"ZwOt64lE5AeeAOjGF9nhJl9b","path":"window.location.pathname","placeholder":"说点什么。。。","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+  
+  
+
+
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+    <div class="statistics">
+  
+  
+
+  
+    
+      <span id="leancloud-site-pv-container" style="display: none">
+        总访问量 
+        <span id="leancloud-site-pv"></span>
+         次
+      </span>
+    
+    
+      <span id="leancloud-site-uv-container" style="display: none">
+        总访客数 
+        <span id="leancloud-site-uv"></span>
+         人
+      </span>
+    
+    
+
+  
+</div>
+
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  
+      <script>
+        if (!window.MathJax) {
+          window.MathJax = {
+            tex    : {
+              inlineMath: { '[+]': [['$', '$']] }
+            },
+            loader : {
+              load: ['ui/lazy']
+            },
+            options: {
+              renderActions: {
+                insertedScript: [200, () => {
+                  document.querySelectorAll('mjx-container').forEach(node => {
+                    let target = node.parentNode;
+                    if (target.nodeName.toLowerCase() === 'li') {
+                      target.parentNode.classList.add('has-jax');
+                    }
+                  });
+                }, '', false]
+              }
+            }
+          };
+        } else {
+          MathJax.startup.document.state(0);
+          MathJax.texReset();
+          MathJax.typeset();
+          MathJax.typesetPromise();
+        }
+
+        Fluid.events.registerRefreshCallback(function() {
+          if ('MathJax' in window && MathJax.startup.document && typeof MathJax.startup.document.state === 'function') {
+            MathJax.startup.document.state(0);
+            MathJax.texReset();
+            MathJax.typeset();
+            MathJax.typesetPromise();
+          }
+        });
+      </script>
+    
+
+  <script  src="https://lib.baomitu.com/mathjax/3.2.2/es5/tex-mml-chtml.js" ></script>
+
+  <script defer src="/js/leancloud.js" ></script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
