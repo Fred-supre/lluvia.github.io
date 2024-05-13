@@ -261,7 +261,7 @@
       
       <a class="index-excerpt index-excerpt__noimg" href="/2024/05/12/Raft/" target="_self">
         <div>
-          参考资料： Raft论文 In search of an understandable consensus algorithm. Consensus: bridging theory and practice Raft协议详解 深入架构原理与实践:成员变更问题 浅谈Raft配置变更(成员变更)策略  一、Raft基础 Raft集群包含若干个服务器节点都处于这三个状态之一：领导人(Leader)、
+          Raft是一种分布式一致性算法，用于在多个服务器节点间达成共识。Raft集群中的节点可以是领导者（Leader）、跟随者（Follower）或候选人（Candidate）。领导者处理所有请求，跟随者被动接收更新，而候选人在领导者失效时发起选举。Raft通过任期和RPC通信来管理选举和日志复制。领导人选举通过心跳机制触发，确保每个任期内只有一个领导者。日志复制确保所有节点上的日志一致，而安全性通过选
         </div>
       </a>
 
@@ -322,7 +322,7 @@
       
       <a class="index-excerpt index-excerpt__noimg" href="/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/" target="_self">
         <div>
-          一、I&#x2F;O同步&#x2F;异步  同步、异步强调的是消息的通信机制（同步通信&#x2F;异步通信）  同步，就是在发出一个”调用”时，在没有得到结果之前，该“调用”就不返回。但是一旦调用返回，就得到返回值了。换句话说，就是由“调用者”主动等待这个“调用”的结果。  异步则是相反，”调用”在发出之后，这个调用就直接返回了，所以没有返回结果。换句话说，当一个异步过程调用发出后，调用者不会立刻
+          Linux文件I/O操作涉及同步/异步、阻塞/非阻塞等模型，包括同步阻塞IO、同步非阻塞IO、IO多路复用、信号驱动式IO和异步非阻塞IO。基础IO方式如read/write默认阻塞，可通过参数变为非阻塞。高级接口如fread/fwrite减少系统调用开销。零拷贝技术如mmap和sendfile减少数据拷贝，提高性能。网络模式如Reactor和Proactor用于高效处理网络事件。
         </div>
       </a>
 
@@ -383,7 +383,7 @@
       
       <a class="index-excerpt index-excerpt__noimg" href="/2024/05/12/Linux-%E5%90%8C%E6%AD%A5%E4%B8%8E%E9%94%81/" target="_self">
         <div>
-          一、互斥量 在Linux中要实现互斥锁mutex最简单的办法是通过操作系统提供的信号量来实现，但是目前在C++中调用pthread_mutex_lock并不是直接通过操作系统的信号量原语来实现的，而是使用了优化过的futex来实现。  1.1 futex基本概念 Futex 是Fast Userspace muTexes的缩写，在传统的Unix系统中当进程间要同步的时候必须要通过系统调用(如sem
+          Linux同步与锁机制包括互斥量、条件变量、死锁预防、可重入锁和读写锁。互斥量通过futex实现，结合用户态和内核态操作，减少不必要的系统调用。条件变量用于线程间同步，与互斥量结合使用，处理虚假唤醒问题。死锁预防通过破坏产生死锁的四个必要条件之一来实现。可重入锁允许同一进程多次获取锁，而读写锁允许多个读操作或单个写操作，提高并发效率。乐观锁与悲观锁是控制并发访问的理念，悲观锁通过加锁防止冲突，乐观
         </div>
       </a>
 
@@ -444,7 +444,7 @@
       
       <a class="index-excerpt index-excerpt__noimg" href="/2024/05/12/Linux-%E8%BF%9B%E7%A8%8B%E7%AE%A1%E7%90%86/" target="_self">
         <div>
-          一、进程管理1.1 进程 进程是处于执行期的程序，除了除了可执行代码之外，还包含： 打开的文件 挂起的信号 内核内部数据 处理器状态 具有内存映射的内存地址空间 执行的线程 存放全局变量的数据段   线程则包含一个独立的程序计数器、进程栈和一组进程寄存器 内核调度的对象是线程，而非进程，在Linux中线程只不过是特殊的进程  1.2 进程描述符和任务结构 进程描述符task_struct，通过双向
+          Linux进程管理涵盖了进程的创建与终结、进程调度算法（包括CFS等）、进程间通信方式（如管道、消息队列、共享内存、信号量、信号及socket），以及上下文切换和线程管理等关键领域，共同构成了操作系统中进程生命周期的核心机制。
         </div>
       </a>
 
@@ -505,7 +505,7 @@
       
       <a class="index-excerpt index-excerpt__noimg" href="/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/" target="_self">
         <div>
-          本篇作为列存模型的前置内容，主要分析L1,L2,L3 Cache的基本原理 参考资料：  Cache的基本原理 Cache组织方式 TLB原理   一、Cache         现代的CPU都普遍存在L1、L2、L3三层Cache用于缓解CPU和DRAM之间的较大速度差距 在Cortex-A53架构上，L1 Cache分为单独的instruction cache（ICache）和data ca
+          Linux内核中的高速缓存（Cache）技术，包括L1、L2、L3三级Cache，用于缓解CPU与DRAM之间的速度差距。Cache操作以Cache Line为单位，通常大小为4-128 Bytes。映射模式有直接映射、两路组相连和全相连，更新策略包括写直通和写回。组织方式涉及VIVT、PIPT和VIPT。TLB用于加速虚拟地址到物理地址的转换。多核缓存一致性通过MESI协议等硬件机制保证，原子操
         </div>
       </a>
 
@@ -568,7 +568,7 @@
       
       <a class="index-excerpt index-excerpt__noimg" href="/2024/05/12/%E5%8D%8F%E7%A8%8B%E5%BA%93/" target="_self">
         <div>
-          一、协程1.1 基本概念 协程可以理解为一种用户态的轻量级线程，一个线程里跑多个协程。  协程分为对称协程和非对称协程，对称协程就是当协程切换的时候他可以切换到任意其他的协程，比如goroutine；而非对称协程只能切换到调用他的调度器。  C20以前，c/c++不直接支持协程语义，但有不少开源的协程库， 目前大概有三种实现协程的方式：  利用glibc的ucontext组件：coroutine
+          协程是用户态的轻量级线程，允许多个协程在一个线程内运行，分为对称和非对称。C20前，C/C++通过开源库如coroutine、libco实现协程。协程解决IO密集型程序的CPU阻塞问题，提高效率。libco库通过汇编实现上下文切换，提供socket函数hook，实现异步化。协程操作包括创建、恢复和挂起，调度基于事件模型，如libco的epoll机制。协程是提高IO密集型应用性能的有效技术。
         </div>
       </a>
 
@@ -629,7 +629,7 @@
       
       <a class="index-excerpt index-excerpt__noimg" href="/2024/05/12/RocksDB-%E4%BA%8B%E5%8A%A1%E7%AE%A1%E7%90%86/" target="_self">
         <div>
-          一、隔离性（Isolation）1.1 隔离所导致的问题脏读  读取到了没有提交的数据，如果之前的事务回滚了，就读到了脏数据 注意这里的重点是：读取到了没有提交的事务的数据  不可重复读  一个事务对同一共享数据读取了两次，发现前后两次的数据不一致 不可重复读主要是针对update操作的描述，即表中的字段值发生了改变  幻读  一个事务内读取到了别的事务插入的数据，导致前后读取不一致 幻读主要用于
+          RocksDB事务管理涵盖隔离性、MVCC、锁机制和两阶段提交。隔离性解决脏读、不可重复读和幻读问题，通过不同隔离级别实现。MVCC通过版本快照提升读事务并发性能。RocksDB实现包括WriteBatch、Snapshot，支持Read Uncommitted、Read Committed和Repeatable Read。锁管理涉及点锁和范围锁，通过LockManager接口确保并发访问正确性。
         </div>
       </a>
 
@@ -690,7 +690,7 @@
       
       <a class="index-excerpt index-excerpt__noimg" href="/2024/05/12/RocksDB-%E7%BA%BF%E7%A8%8B%E7%A7%81%E6%9C%89%E5%8C%96/" target="_self">
         <div>
-          在RocksDB的PointLockManager中有使用到，是系统层面的优化点  一、线程资源 这一小节是实现各种系统设计中通过线程私有化实现性能优化的基础 是由编译器和标准库提供的线程资源的支持，有线程特定数据（Thread Specific Data）和线程局部存储 (Thread Local Storage)两种  1.1 TLS1static int thread_local var_
+          文章讨论了在RocksDB中实现线程私有化的优化策略。首先介绍了线程资源管理的基础，包括TLS（线程局部存储）和TSD（线程特定数据）。接着详细介绍了TCMalloc的设计思路和内存分配策略，以及如何通过线程私有化实现高效内存分配。然后，文章提出了ThreadLocalPtr作为RocksDB对线程私有存储的封装，简化了线程私有变量的管理。最后，通过PointLockManager的优化案例说明了
         </div>
       </a>
 

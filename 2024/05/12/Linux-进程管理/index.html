@@ -16,16 +16,16 @@
   <meta name="author" content="Lluvia Luo">
   <meta name="keywords" content="">
   
-    <meta name="description" content="一、进程管理1.1 进程 进程是处于执行期的程序，除了除了可执行代码之外，还包含： 打开的文件 挂起的信号 内核内部数据 处理器状态 具有内存映射的内存地址空间 执行的线程 存放全局变量的数据段   线程则包含一个独立的程序计数器、进程栈和一组进程寄存器 内核调度的对象是线程，而非进程，在Linux中线程只不过是特殊的进程  1.2 进程描述符和任务结构 进程描述符task_struct，通过双向">
+    <meta name="description" content="Linux进程管理涵盖了进程的创建与终结、进程调度算法（包括CFS等）、进程间通信方式（如管道、消息队列、共享内存、信号量、信号及socket），以及上下文切换和线程管理等关键领域，共同构成了操作系统中进程生命周期的核心机制。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Linux:进程管理">
 <meta property="og:url" content="https://github.com/2024/05/12/Linux-%E8%BF%9B%E7%A8%8B%E7%AE%A1%E7%90%86/index.html">
 <meta property="og:site_name" content="Lluvia&#39;s blog">
-<meta property="og:description" content="一、进程管理1.1 进程 进程是处于执行期的程序，除了除了可执行代码之外，还包含： 打开的文件 挂起的信号 内核内部数据 处理器状态 具有内存映射的内存地址空间 执行的线程 存放全局变量的数据段   线程则包含一个独立的程序计数器、进程栈和一组进程寄存器 内核调度的对象是线程，而非进程，在Linux中线程只不过是特殊的进程  1.2 进程描述符和任务结构 进程描述符task_struct，通过双向">
+<meta property="og:description" content="Linux进程管理涵盖了进程的创建与终结、进程调度算法（包括CFS等）、进程间通信方式（如管道、消息队列、共享内存、信号量、信号及socket），以及上下文切换和线程管理等关键领域，共同构成了操作系统中进程生命周期的核心机制。">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://github.com/2024/05/12/Linux-%E8%BF%9B%E7%A8%8B%E7%AE%A1%E7%90%86/%E8%B0%83%E5%BA%A6%E7%B1%BB.webp">
 <meta property="article:published_time" content="2024-05-12T12:39:22.000Z">
-<meta property="article:modified_time" content="2024-05-12T12:47:03.824Z">
+<meta property="article:modified_time" content="2024-05-13T10:55:40.345Z">
 <meta property="article:author" content="Lluvia Luo">
 <meta property="article:tag" content="Linux">
 <meta name="twitter:card" content="summary_large_image">
@@ -312,7 +312,7 @@
               <p id="updated-time" class="note note-info" style="">
                 
                   
-                    本文最后更新于 2024年5月12日 晚上
+                    本文最后更新于 2024年5月13日 晚上
                   
                 
               </p>
