@@ -19,17 +19,17 @@
     <meta name="description" content="协程是用户态的轻量级线程，允许多个协程在一个线程内运行，分为对称和非对称。C20前，C&#x2F;C++通过开源库如coroutine、libco实现协程。协程解决IO密集型程序的CPU阻塞问题，提高效率。libco库通过汇编实现上下文切换，提供socket函数hook，实现异步化。协程操作包括创建、恢复和挂起，调度基于事件模型，如libco的epoll机制。协程是提高IO密集型应用性能的有效技术。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="协程库">
-<meta property="og:url" content="https://github.com/2024/05/12/%E5%8D%8F%E7%A8%8B%E5%BA%93/index.html">
+<meta property="og:url" content="https://lluvialuo.github.io/2024/05/12/%E5%8D%8F%E7%A8%8B%E5%BA%93/index.html">
 <meta property="og:site_name" content="Lluvia&#39;s blog">
 <meta property="og:description" content="协程是用户态的轻量级线程，允许多个协程在一个线程内运行，分为对称和非对称。C20前，C&#x2F;C++通过开源库如coroutine、libco实现协程。协程解决IO密集型程序的CPU阻塞问题，提高效率。libco库通过汇编实现上下文切换，提供socket函数hook，实现异步化。协程操作包括创建、恢复和挂起，调度基于事件模型，如libco的epoll机制。协程是提高IO密集型应用性能的有效技术。">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://github.com/2024/05/12/%E5%8D%8F%E7%A8%8B%E5%BA%93/stack-frame.png">
+<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/%E5%8D%8F%E7%A8%8B%E5%BA%93/stack-frame.png">
 <meta property="article:published_time" content="2024-05-12T06:53:03.000Z">
 <meta property="article:modified_time" content="2024-05-13T10:49:32.572Z">
 <meta property="article:author" content="Lluvia Luo">
 <meta property="article:tag" content="协程">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://github.com/2024/05/12/%E5%8D%8F%E7%A8%8B%E5%BA%93/stack-frame.png">
+<meta name="twitter:image" content="https://lluvialuo.github.io/2024/05/12/%E5%8D%8F%E7%A8%8B%E5%BA%93/stack-frame.png">
   
   
   
@@ -71,7 +71,7 @@
   <script id="fluid-configs">
     var Fluid = window.Fluid || {};
     Fluid.ctx = Object.assign({}, Fluid.ctx)
-    var CONFIG = {"hostname":"github.com","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"GYXWwiquLells7Jk5YnXDL14-gzGzoHsz","app_key":"ZwOt64lE5AeeAOjGF9nhJl9b","server_url":"https://gyxwwiqu.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+    var CONFIG = {"hostname":"lluvialuo.github.io","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"GYXWwiquLells7Jk5YnXDL14-gzGzoHsz","app_key":"ZwOt64lE5AeeAOjGF9nhJl9b","server_url":"https://gyxwwiqu.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
 
     if (CONFIG.web_analytics.follow_dnt) {
       var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
@@ -327,9 +327,9 @@
 </li>
 <li><p><code>C20</code>以前，<code>c/c++</code>不直接支持协程语义，但有不少开源的协程库， 目前大概有三种实现协程的方式：</p>
 <ul>
-<li>利用<code>glibc</code>的<code>ucontext</code>组件：<a href="https://github.com/cloudwu/coroutine/">coroutine</a></li>
-<li>利用汇编代码来切换上下文：<a href="https://github.com/Tencent/libco">libco</a></li>
-<li>利用C语言的<code>setjmp</code>和<code>longjmp</code>：<a href="https://github.com/sustrik/libmill">libmill</a></li>
+<li>利用<code>glibc</code>的<code>ucontext</code>组件：<a target="_blank" rel="noopener" href="https://github.com/cloudwu/coroutine/">coroutine</a></li>
+<li>利用汇编代码来切换上下文：<a target="_blank" rel="noopener" href="https://github.com/Tencent/libco">libco</a></li>
+<li>利用C语言的<code>setjmp</code>和<code>longjmp</code>：<a target="_blank" rel="noopener" href="https://github.com/sustrik/libmill">libmill</a></li>
 </ul>
 </li>
 <li><p>当然在<code>C20</code>的新特性中在语言级别支持了协程</p>
@@ -730,7 +730,7 @@
   <div class="license-box my-3">
     <div class="license-title">
       <div>协程库</div>
-      <div>https://github.com/2024/05/12/协程库/</div>
+      <div>https://lluvialuo.github.io/2024/05/12/协程库/</div>
     </div>
     <div class="license-meta">
       

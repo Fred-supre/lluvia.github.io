@@ -19,19 +19,19 @@
     <meta name="description" content="本文介绍了RPC（远程过程调用）框架的基础概念，包括网络编程接口、服务器架构、分发与动态代理、网络协议、序列化和服务注册等关键组成部分。特别聚焦于PhxRPC框架，阐述了其如何整合协程、HTTP协议和Protobuf序列化工具以实现高效的远程调用。文章还概述了PhxRPC的服务器架构，介绍了Protobuf。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="RPC框架">
-<meta property="og:url" content="https://github.com/2024/05/13/RPC%E6%A1%86%E6%9E%B6/index.html">
+<meta property="og:url" content="https://lluvialuo.github.io/2024/05/13/RPC%E6%A1%86%E6%9E%B6/index.html">
 <meta property="og:site_name" content="Lluvia&#39;s blog">
 <meta property="og:description" content="本文介绍了RPC（远程过程调用）框架的基础概念，包括网络编程接口、服务器架构、分发与动态代理、网络协议、序列化和服务注册等关键组成部分。特别聚焦于PhxRPC框架，阐述了其如何整合协程、HTTP协议和Protobuf序列化工具以实现高效的远程调用。文章还概述了PhxRPC的服务器架构，介绍了Protobuf。">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://github.com/2024/05/13/RPC%E6%A1%86%E6%9E%B6/RPC%E6%9E%B6%E6%9E%84.png">
-<meta property="og:image" content="https://github.com/2024/05/13/RPC%E6%A1%86%E6%9E%B6/PhxRPC%E6%B5%81%E7%A8%8B%E5%9B%BE.png">
+<meta property="og:image" content="https://lluvialuo.github.io/2024/05/13/RPC%E6%A1%86%E6%9E%B6/RPC%E6%9E%B6%E6%9E%84.png">
+<meta property="og:image" content="https://lluvialuo.github.io/2024/05/13/RPC%E6%A1%86%E6%9E%B6/PhxRPC%E6%B5%81%E7%A8%8B%E5%9B%BE.png">
 <meta property="article:published_time" content="2024-05-13T14:35:57.000Z">
 <meta property="article:modified_time" content="2024-05-13T14:44:27.988Z">
 <meta property="article:author" content="Lluvia Luo">
 <meta property="article:tag" content="PhxRPC">
 <meta property="article:tag" content="Protobuf">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://github.com/2024/05/13/RPC%E6%A1%86%E6%9E%B6/RPC%E6%9E%B6%E6%9E%84.png">
+<meta name="twitter:image" content="https://lluvialuo.github.io/2024/05/13/RPC%E6%A1%86%E6%9E%B6/RPC%E6%9E%B6%E6%9E%84.png">
   
   
   
@@ -73,7 +73,7 @@
   <script id="fluid-configs">
     var Fluid = window.Fluid || {};
     Fluid.ctx = Object.assign({}, Fluid.ctx)
-    var CONFIG = {"hostname":"github.com","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"GYXWwiquLells7Jk5YnXDL14-gzGzoHsz","app_key":"ZwOt64lE5AeeAOjGF9nhJl9b","server_url":"https://gyxwwiqu.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+    var CONFIG = {"hostname":"lluvialuo.github.io","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"GYXWwiquLells7Jk5YnXDL14-gzGzoHsz","app_key":"ZwOt64lE5AeeAOjGF9nhJl9b","server_url":"https://gyxwwiqu.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
 
     if (CONFIG.web_analytics.follow_dnt) {
       var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
@@ -336,7 +336,7 @@
 </ol>
 <h1 id="二、PhxRPC"><a href="#二、PhxRPC" class="headerlink" title="二、PhxRPC"></a>二、PhxRPC</h1><ul>
 <li><code>PhxRPC</code>项目是一个完整的RPC框架，包括协程模块、服务器模块、网络协议模块、序列化模块等。</li>
-<li>协程是使用<code>boost::ucontext</code>实现的，并且是无栈协程。如果想要创建新的协程需要在主协程中创建，不能在协程内创建新的协程。具体来说代码中通过一个<code>AddTask</code>函数创建协程，但这里只是将该协程加入到队列中，需要等到主协程的调度循环中取出这个协程并开始运行。这里和<code>libco</code>中的设计不太一样，<code>libco</code>是在创建协程之后立刻运行，但这就需要协程栈的支持了，必须要退回到上一级的协程。协程是一个非常大的话题，详细见<a target="_blank" rel="noopener" href="https://lluvialuo.github.io/2024/05/12/%E5%8D%8F%E7%A8%8B%E5%BA%93/">协程库</a>。</li>
+<li>协程是使用<code>boost::ucontext</code>实现的，并且是无栈协程。如果想要创建新的协程需要在主协程中创建，不能在协程内创建新的协程。具体来说代码中通过一个<code>AddTask</code>函数创建协程，但这里只是将该协程加入到队列中，需要等到主协程的调度循环中取出这个协程并开始运行。这里和<code>libco</code>中的设计不太一样，<code>libco</code>是在创建协程之后立刻运行，但这就需要协程栈的支持了，必须要退回到上一级的协程。协程是一个非常大的话题，详细见<a href="https://lluvialuo.github.io/2024/05/12/%E5%8D%8F%E7%A8%8B%E5%BA%93/">协程库</a>。</li>
 <li>网络协议上使用的<code>HTTP</code>，也属于比较常规的内容，但是注意<code>HTTP</code>的接口在实现时需要考虑是在协程上运行的，所以应该使用重新定义的网络读写接口。</li>
 </ul>
 <h2 id="2-1-基础框架"><a href="#2-1-基础框架" class="headerlink" title="2.1 基础框架"></a>2.1 基础框架</h2><div style="text-align:center;">
@@ -565,7 +565,7 @@
   <div class="license-box my-3">
     <div class="license-title">
       <div>RPC框架</div>
-      <div>https://github.com/2024/05/13/RPC框架/</div>
+      <div>https://lluvialuo.github.io/2024/05/13/RPC框架/</div>
     </div>
     <div class="license-meta">
       

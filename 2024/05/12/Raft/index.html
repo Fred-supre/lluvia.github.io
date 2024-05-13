@@ -19,21 +19,21 @@
     <meta name="description" content="Raft是一种分布式一致性算法，用于在多个服务器节点间达成共识。Raft集群中的节点可以是领导者（Leader）、跟随者（Follower）或候选人（Candidate）。领导者处理所有请求，跟随者被动接收更新，而候选人在领导者失效时发起选举。Raft通过任期和RPC通信来管理选举和日志复制。领导人选举通过心跳机制触发，确保每个任期内只有一个领导者。日志复制确保所有节点上的日志一致，而安全性通过选">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Raft">
-<meta property="og:url" content="https://github.com/2024/05/12/Raft/index.html">
+<meta property="og:url" content="https://lluvialuo.github.io/2024/05/12/Raft/index.html">
 <meta property="og:site_name" content="Lluvia&#39;s blog">
 <meta property="og:description" content="Raft是一种分布式一致性算法，用于在多个服务器节点间达成共识。Raft集群中的节点可以是领导者（Leader）、跟随者（Follower）或候选人（Candidate）。领导者处理所有请求，跟随者被动接收更新，而候选人在领导者失效时发起选举。Raft通过任期和RPC通信来管理选举和日志复制。领导人选举通过心跳机制触发，确保每个任期内只有一个领导者。日志复制确保所有节点上的日志一致，而安全性通过选">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://github.com/2024/05/12/Raft/raft%E7%8A%B6%E6%80%81%E5%8F%98%E6%9B%B4%E5%9B%BE.png">
-<meta property="og:image" content="https://github.com/2024/05/12/Raft/%E6%97%A5%E5%BF%97%E6%8F%90%E4%BA%A4%E9%97%AE%E9%A2%98.png">
-<meta property="og:image" content="https://github.com/2024/05/12/Raft/%E6%8B%93%E6%89%91%E5%8F%98%E6%9B%B4.png">
-<meta property="og:image" content="https://github.com/2024/05/12/Raft/%E8%81%94%E5%90%88%E5%85%B1%E8%AF%86.png">
-<meta property="og:image" content="https://github.com/2024/05/12/Raft/%E5%8D%95%E8%8A%82%E7%82%B9%E5%8F%98%E6%9B%B4.png">
+<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Raft/raft%E7%8A%B6%E6%80%81%E5%8F%98%E6%9B%B4%E5%9B%BE.png">
+<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Raft/%E6%97%A5%E5%BF%97%E6%8F%90%E4%BA%A4%E9%97%AE%E9%A2%98.png">
+<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Raft/%E6%8B%93%E6%89%91%E5%8F%98%E6%9B%B4.png">
+<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Raft/%E8%81%94%E5%90%88%E5%85%B1%E8%AF%86.png">
+<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Raft/%E5%8D%95%E8%8A%82%E7%82%B9%E5%8F%98%E6%9B%B4.png">
 <meta property="article:published_time" content="2024-05-12T15:32:54.000Z">
 <meta property="article:modified_time" content="2024-05-13T11:00:28.362Z">
 <meta property="article:author" content="Lluvia Luo">
 <meta property="article:tag" content="Raft">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://github.com/2024/05/12/Raft/raft%E7%8A%B6%E6%80%81%E5%8F%98%E6%9B%B4%E5%9B%BE.png">
+<meta name="twitter:image" content="https://lluvialuo.github.io/2024/05/12/Raft/raft%E7%8A%B6%E6%80%81%E5%8F%98%E6%9B%B4%E5%9B%BE.png">
   
   
   
@@ -75,7 +75,7 @@
   <script id="fluid-configs">
     var Fluid = window.Fluid || {};
     Fluid.ctx = Object.assign({}, Fluid.ctx)
-    var CONFIG = {"hostname":"github.com","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"GYXWwiquLells7Jk5YnXDL14-gzGzoHsz","app_key":"ZwOt64lE5AeeAOjGF9nhJl9b","server_url":"https://gyxwwiqu.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+    var CONFIG = {"hostname":"lluvialuo.github.io","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"GYXWwiquLells7Jk5YnXDL14-gzGzoHsz","app_key":"ZwOt64lE5AeeAOjGF9nhJl9b","server_url":"https://gyxwwiqu.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
 
     if (CONFIG.web_analytics.follow_dnt) {
       var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
@@ -543,7 +543,7 @@
   <div class="license-box my-3">
     <div class="license-title">
       <div>Raft</div>
-      <div>https://github.com/2024/05/12/Raft/</div>
+      <div>https://lluvialuo.github.io/2024/05/12/Raft/</div>
     </div>
     <div class="license-meta">
       

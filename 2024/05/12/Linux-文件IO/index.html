@@ -19,25 +19,25 @@
     <meta name="description" content="Linux文件I&#x2F;O操作涉及同步&#x2F;异步、阻塞&#x2F;非阻塞等模型，包括同步阻塞IO、同步非阻塞IO、IO多路复用、信号驱动式IO和异步非阻塞IO。基础IO方式如read&#x2F;write默认阻塞，可通过参数变为非阻塞。高级接口如fread&#x2F;fwrite减少系统调用开销。零拷贝技术如mmap和sendfile减少数据拷贝，提高性能。网络模式如Reactor和Proactor用于高效处理网络事件。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Linux:文件IO">
-<meta property="og:url" content="https://github.com/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/index.html">
+<meta property="og:url" content="https://lluvialuo.github.io/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/index.html">
 <meta property="og:site_name" content="Lluvia&#39;s blog">
 <meta property="og:description" content="Linux文件I&#x2F;O操作涉及同步&#x2F;异步、阻塞&#x2F;非阻塞等模型，包括同步阻塞IO、同步非阻塞IO、IO多路复用、信号驱动式IO和异步非阻塞IO。基础IO方式如read&#x2F;write默认阻塞，可通过参数变为非阻塞。高级接口如fread&#x2F;fwrite减少系统调用开销。零拷贝技术如mmap和sendfile减少数据拷贝，提高性能。网络模式如Reactor和Proactor用于高效处理网络事件。">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/io.webp">
-<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/epoll.webp">
-<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/uring.png">
-<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/%E4%BC%A0%E7%BB%9F%E6%96%87%E4%BB%B6%E4%BC%A0%E8%BE%93.webp">
-<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/mmap%20+%20write%20%E9%9B%B6%E6%8B%B7%E8%B4%9D.webp">
-<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/sendfile-%E9%9B%B6%E6%8B%B7%E8%B4%9D.webp">
-<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/%E5%8D%95Reactor%E5%8D%95%E8%BF%9B%E7%A8%8B.webp">
-<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/%E5%8D%95Reactor%E5%A4%9A%E7%BA%BF%E7%A8%8B.webp">
-<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/%E4%B8%BB%E4%BB%8EReactor%E5%A4%9A%E7%BA%BF%E7%A8%8B.webp">
+<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/io.webp">
+<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/epoll.webp">
+<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/uring.png">
+<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/%E4%BC%A0%E7%BB%9F%E6%96%87%E4%BB%B6%E4%BC%A0%E8%BE%93.webp">
+<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/mmap%20+%20write%20%E9%9B%B6%E6%8B%B7%E8%B4%9D.webp">
+<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/sendfile-%E9%9B%B6%E6%8B%B7%E8%B4%9D.webp">
+<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/%E5%8D%95Reactor%E5%8D%95%E8%BF%9B%E7%A8%8B.webp">
+<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/%E5%8D%95Reactor%E5%A4%9A%E7%BA%BF%E7%A8%8B.webp">
+<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/%E4%B8%BB%E4%BB%8EReactor%E5%A4%9A%E7%BA%BF%E7%A8%8B.webp">
 <meta property="article:published_time" content="2024-05-12T13:01:52.000Z">
 <meta property="article:modified_time" content="2024-05-13T11:01:35.645Z">
 <meta property="article:author" content="Lluvia Luo">
 <meta property="article:tag" content="Linux">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://github.com/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/io.webp">
+<meta name="twitter:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/io.webp">
   
   
   
@@ -79,7 +79,7 @@
   <script id="fluid-configs">
     var Fluid = window.Fluid || {};
     Fluid.ctx = Object.assign({}, Fluid.ctx)
-    var CONFIG = {"hostname":"github.com","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"GYXWwiquLells7Jk5YnXDL14-gzGzoHsz","app_key":"ZwOt64lE5AeeAOjGF9nhJl9b","server_url":"https://gyxwwiqu.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+    var CONFIG = {"hostname":"lluvialuo.github.io","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"GYXWwiquLells7Jk5YnXDL14-gzGzoHsz","app_key":"ZwOt64lE5AeeAOjGF9nhJl9b","server_url":"https://gyxwwiqu.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
 
     if (CONFIG.web_analytics.follow_dnt) {
       var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
@@ -788,7 +788,7 @@
   <div class="license-box my-3">
     <div class="license-title">
       <div>Linux:文件IO</div>
-      <div>https://github.com/2024/05/12/Linux-文件IO/</div>
+      <div>https://lluvialuo.github.io/2024/05/12/Linux-文件IO/</div>
     </div>
     <div class="license-meta">
       

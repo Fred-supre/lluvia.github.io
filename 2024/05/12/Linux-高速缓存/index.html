@@ -19,26 +19,26 @@
     <meta name="description" content="Linux内核中的高速缓存（Cache）技术，包括L1、L2、L3三级Cache，用于缓解CPU与DRAM之间的速度差距。Cache操作以Cache Line为单位，通常大小为4-128 Bytes。映射模式有直接映射、两路组相连和全相连，更新策略包括写直通和写回。组织方式涉及VIVT、PIPT和VIPT。TLB用于加速虚拟地址到物理地址的转换。多核缓存一致性通过MESI协议等硬件机制保证，原子操">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Linux:高速缓存">
-<meta property="og:url" content="https://github.com/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/index.html">
+<meta property="og:url" content="https://lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/index.html">
 <meta property="og:site_name" content="Lluvia&#39;s blog">
 <meta property="og:description" content="Linux内核中的高速缓存（Cache）技术，包括L1、L2、L3三级Cache，用于缓解CPU与DRAM之间的速度差距。Cache操作以Cache Line为单位，通常大小为4-128 Bytes。映射模式有直接映射、两路组相连和全相连，更新策略包括写直通和写回。组织方式涉及VIVT、PIPT和VIPT。TLB用于加速虚拟地址到物理地址的转换。多核缓存一致性通过MESI协议等硬件机制保证，原子操">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/cpu%E7%BC%93%E5%AD%98%E6%9E%B6%E6%9E%84.png">
-<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/%E7%9B%B4%E6%8E%A5%E6%98%A0%E5%B0%84.webp">
-<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/%E4%B8%A4%E8%B7%AF%E7%BB%84%E7%9B%B8%E8%BF%9E.webp">
-<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/%E5%85%A8%E7%9B%B8%E8%BF%9E.webp">
-<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/VIVT.webp">
-<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/PIPT.webp">
-<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/VIPT.webp">
-<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/TLB.png">
-<meta property="og:image" content="https://github.com/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/mesi.png">
+<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/cpu%E7%BC%93%E5%AD%98%E6%9E%B6%E6%9E%84.png">
+<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/%E7%9B%B4%E6%8E%A5%E6%98%A0%E5%B0%84.webp">
+<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/%E4%B8%A4%E8%B7%AF%E7%BB%84%E7%9B%B8%E8%BF%9E.webp">
+<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/%E5%85%A8%E7%9B%B8%E8%BF%9E.webp">
+<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/VIVT.webp">
+<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/PIPT.webp">
+<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/VIPT.webp">
+<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/TLB.png">
+<meta property="og:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/mesi.png">
 <meta property="article:published_time" content="2024-05-12T07:09:08.000Z">
 <meta property="article:modified_time" content="2024-05-13T10:51:40.462Z">
 <meta property="article:author" content="Lluvia Luo">
 <meta property="article:tag" content="Linux">
 <meta property="article:tag" content="memory model">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://github.com/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/cpu%E7%BC%93%E5%AD%98%E6%9E%B6%E6%9E%84.png">
+<meta name="twitter:image" content="https://lluvialuo.github.io/2024/05/12/Linux-%E9%AB%98%E9%80%9F%E7%BC%93%E5%AD%98/cpu%E7%BC%93%E5%AD%98%E6%9E%B6%E6%9E%84.png">
   
   
   
@@ -80,7 +80,7 @@
   <script id="fluid-configs">
     var Fluid = window.Fluid || {};
     Fluid.ctx = Object.assign({}, Fluid.ctx)
-    var CONFIG = {"hostname":"github.com","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"GYXWwiquLells7Jk5YnXDL14-gzGzoHsz","app_key":"ZwOt64lE5AeeAOjGF9nhJl9b","server_url":"https://gyxwwiqu.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+    var CONFIG = {"hostname":"lluvialuo.github.io","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"GYXWwiquLells7Jk5YnXDL14-gzGzoHsz","app_key":"ZwOt64lE5AeeAOjGF9nhJl9b","server_url":"https://gyxwwiqu.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
 
     if (CONFIG.web_analytics.follow_dnt) {
       var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
@@ -625,7 +625,7 @@
   <div class="license-box my-3">
     <div class="license-title">
       <div>Linux:高速缓存</div>
-      <div>https://github.com/2024/05/12/Linux-高速缓存/</div>
+      <div>https://lluvialuo.github.io/2024/05/12/Linux-高速缓存/</div>
     </div>
     <div class="license-meta">
       
