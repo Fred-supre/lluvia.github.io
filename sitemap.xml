@@ -108,13 +108,6 @@
   </url>
   
   <url>
-    <loc>https://lluvialuo.github.io/tags/memory-model/</loc>
-    <lastmod>2024-05-13</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
     <loc>https://lluvialuo.github.io/tags/PhxRPC/</loc>
     <lastmod>2024-05-13</lastmod>
     <changefreq>weekly</changefreq>
@@ -129,7 +122,7 @@
   </url>
   
   <url>
-    <loc>https://lluvialuo.github.io/tags/Raft/</loc>
+    <loc>https://lluvialuo.github.io/tags/memory-model/</loc>
     <lastmod>2024-05-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
@@ -137,6 +130,13 @@
   
   <url>
     <loc>https://lluvialuo.github.io/tags/RocksDB/</loc>
+    <lastmod>2024-05-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://lluvialuo.github.io/tags/Raft/</loc>
     <lastmod>2024-05-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
@@ -166,14 +166,14 @@
   </url>
   
   <url>
-    <loc>https://lluvialuo.github.io/categories/%E5%88%86%E5%B8%83%E5%BC%8F/</loc>
+    <loc>https://lluvialuo.github.io/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/</loc>
     <lastmod>2024-05-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
-    <loc>https://lluvialuo.github.io/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/</loc>
+    <loc>https://lluvialuo.github.io/categories/%E5%88%86%E5%B8%83%E5%BC%8F/</loc>
     <lastmod>2024-05-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
