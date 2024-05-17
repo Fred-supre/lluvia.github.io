@@ -1,3 +1,4 @@
+https://lluvialuo.github.io/2024/05/17/Makefile%E7%AC%94%E8%AE%B0/
 https://lluvialuo.github.io/2024/05/12/Raft/
 https://lluvialuo.github.io/2024/05/13/RPC%E6%A1%86%E6%9E%B6/
 https://lluvialuo.github.io/2024/05/12/Linux-%E6%96%87%E4%BB%B6IO/
@@ -16,8 +17,11 @@ https://lluvialuo.github.io/tags/Raft/
 https://lluvialuo.github.io/tags/RocksDB/
 https://lluvialuo.github.io/tags/%E5%8D%8F%E7%A8%8B/
 https://lluvialuo.github.io/tags/memory-model/
+https://lluvialuo.github.io/tags/Makefile/
+https://lluvialuo.github.io/tags/C-C/
 https://lluvialuo.github.io/categories/Linux/
 https://lluvialuo.github.io/categories/RPC/
 https://lluvialuo.github.io/categories/%E5%88%86%E5%B8%83%E5%BC%8F/
 https://lluvialuo.github.io/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/
 https://lluvialuo.github.io/categories/%E6%8F%92%E4%BB%B6/
+https://lluvialuo.github.io/categories/C-C/
